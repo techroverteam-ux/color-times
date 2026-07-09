@@ -4,6 +4,7 @@ import { Invoice } from "@/models/Invoice";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
+import { notifyInvoiceSent } from "@/lib/notifications/whatsapp-events";
 import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function POST(
@@ -28,7 +29,7 @@ export async function POST(
     id,
     { status: "sent", issuedAt: new Date() },
     { returnDocument: "after" }
-  );
+  ).populate("customer", "name phone");
 
   await recordAuditLog({
     entityType: "Invoice",
@@ -37,6 +38,22 @@ export async function POST(
     actor: auth.user,
     changes: [{ field: "status", from: "draft", to: "sent" }],
   });
+
+  if (invoice) {
+    const customer = invoice.customer as unknown as { name: string; phone?: string } | null;
+    void notifyInvoiceSent({
+      customerName: customer?.name ?? "Customer",
+      customerPhone: customer?.phone,
+      relatedEntityType: "Invoice",
+      relatedEntityId: id,
+      variables: {
+        invoiceNumber: invoice.invoiceNumber,
+        totalAmount: String(invoice.total),
+        amountDue: String(invoice.amountDue),
+        dueDate: invoice.dueDate.toLocaleDateString("en-IN"),
+      },
+    });
+  }
 
   return apiSuccess({ invoice });
 }

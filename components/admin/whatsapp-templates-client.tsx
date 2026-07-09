@@ -1,0 +1,151 @@
+"use client";
+
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import {
+  WhatsAppTemplateFormDialog,
+  type WhatsAppTemplateRow,
+} from "@/components/admin/whatsapp-template-form-dialog";
+import { TRIGGER_EVENT_LABELS } from "@/lib/notifications/trigger-events";
+
+async function fetchTemplates(): Promise<WhatsAppTemplateRow[]> {
+  const res = await fetch("/api/admin/whatsapp/templates");
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error);
+  return json.data.templates;
+}
+
+export function WhatsAppTemplatesClient({
+  initialTemplates,
+}: {
+  initialTemplates: WhatsAppTemplateRow[];
+}) {
+  const queryClient = useQueryClient();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<WhatsAppTemplateRow | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { data: templates = initialTemplates } = useQuery({
+    queryKey: ["admin", "whatsapp", "templates"],
+    queryFn: fetchTemplates,
+    initialData: initialTemplates,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/admin/whatsapp/templates/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      return json.data;
+    },
+    onSuccess: () => {
+      toast.success("Template deleted");
+      queryClient.invalidateQueries({ queryKey: ["admin", "whatsapp", "templates"] });
+      setDeleteId(null);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          onClick={() => {
+            setEditingTemplate(null);
+            setFormOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4" /> New Template
+        </Button>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <table className="w-full text-sm">
+          <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Trigger</th>
+              <th className="px-4 py-3">Brevo Template ID</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((template) => (
+              <tr key={template._id} className="border-b border-border last:border-0">
+                <td className="px-4 py-3 font-medium">{template.name}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {TRIGGER_EVENT_LABELS[template.triggerEvent]}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">{template.brevoTemplateId}</td>
+                <td className="px-4 py-3">
+                  <Badge
+                    className={
+                      template.isActive
+                        ? "rounded-full border-none bg-emerald-100 font-medium text-emerald-800"
+                        : "rounded-full border-none bg-secondary font-medium text-foreground"
+                    }
+                  >
+                    {template.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setEditingTemplate(template);
+                        setFormOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => setDeleteId(template._id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {templates.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                  No templates yet. Create one to start sending WhatsApp updates.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <WhatsAppTemplateFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        editingTemplate={editingTemplate}
+      />
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        title="Delete template?"
+        description="This will permanently remove the template. This cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
+      />
+    </div>
+  );
+}

@@ -5,6 +5,7 @@ import { invoicePaymentSchema } from "@/lib/validations/invoice";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
+import { notifyPaymentReceived } from "@/lib/notifications/whatsapp-events";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 export async function POST(
@@ -60,7 +61,7 @@ export async function POST(
         status,
       },
       { returnDocument: "after" }
-    );
+    ).populate("customer", "name phone");
 
     await recordAuditLog({
       entityType: "Invoice",
@@ -73,6 +74,21 @@ export async function POST(
       ],
       metadata: { payment: input },
     });
+
+    if (invoice) {
+      const customer = invoice.customer as unknown as { name: string; phone?: string } | null;
+      void notifyPaymentReceived({
+        customerName: customer?.name ?? "Customer",
+        customerPhone: customer?.phone,
+        relatedEntityType: "Invoice",
+        relatedEntityId: id,
+        variables: {
+          invoiceNumber: invoice.invoiceNumber,
+          amountPaid: String(input.amount),
+          amountDue: String(invoice.amountDue),
+        },
+      });
+    }
 
     return apiSuccess({ invoice });
   } catch (error) {

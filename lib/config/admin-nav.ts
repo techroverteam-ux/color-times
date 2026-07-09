@@ -1,5 +1,13 @@
 import type { LucideIcon } from "lucide-react";
-import { LayoutDashboard, Shirt, FolderTree, CalendarCheck, Users, Receipt } from "lucide-react";
+import {
+  LayoutDashboard,
+  Shirt,
+  FolderTree,
+  CalendarCheck,
+  Users,
+  Receipt,
+  MessageCircle,
+} from "lucide-react";
 
 export interface AdminNavItem {
   label: string;
@@ -14,6 +22,7 @@ export const adminNavItems: AdminNavItem[] = [
   { label: "Bookings", href: "/admin/bookings", icon: CalendarCheck },
   { label: "Invoices", href: "/admin/invoices", icon: Receipt },
   { label: "Customers", href: "/admin/customers", icon: Users },
+  { label: "WhatsApp", href: "/admin/whatsapp", icon: MessageCircle },
 ];
 
 const MOBILE_BOTTOM_NAV_HREFS = ["/admin", "/admin/products", "/admin/bookings", "/admin/invoices", "/admin/customers"];
