@@ -1,0 +1,81 @@
+import { Schema, model, models, type Document, type Model, type Types } from "mongoose";
+
+export type ProductSize = "XS" | "S" | "M" | "L" | "XL" | "XXL" | "Custom";
+
+export interface IProductVariant {
+  size: ProductSize;
+  quantityInStock: number;
+}
+
+export interface IProduct extends Document {
+  _id: Types.ObjectId;
+  name: string;
+  slug: string;
+  sku: string;
+  category: Types.ObjectId;
+  designer?: string;
+  description: string;
+  color: string;
+  fabric: string;
+  images: string[];
+  variants: IProductVariant[];
+  rentalPricePerDay: number;
+  retailValue: number;
+  securityDeposit: number;
+  isFeatured: boolean;
+  isNewArrival: boolean;
+  isActive: boolean;
+  averageRating: number;
+  reviewCount: number;
+  tags: string[];
+  isFavorited: boolean;
+  archivedAt: Date | null;
+  deletedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const variantSchema = new Schema<IProductVariant>(
+  {
+    size: {
+      type: String,
+      enum: ["XS", "S", "M", "L", "XL", "XXL", "Custom"],
+      required: true,
+    },
+    quantityInStock: { type: Number, required: true, min: 0, default: 0 },
+  },
+  { _id: false }
+);
+
+const productSchema = new Schema<IProduct>(
+  {
+    name: { type: String, required: true, trim: true },
+    slug: { type: String, required: true, unique: true, lowercase: true, index: true },
+    sku: { type: String, required: true, unique: true, uppercase: true },
+    category: { type: Schema.Types.ObjectId, ref: "Category", required: true, index: true },
+    designer: { type: String, trim: true },
+    description: { type: String, required: true },
+    color: { type: String, required: true },
+    fabric: { type: String, required: true },
+    images: { type: [String], required: true, validate: (v: string[]) => v.length > 0 },
+    variants: { type: [variantSchema], required: true },
+    rentalPricePerDay: { type: Number, required: true, min: 0 },
+    retailValue: { type: Number, required: true, min: 0 },
+    securityDeposit: { type: Number, required: true, min: 0 },
+    isFeatured: { type: Boolean, default: false, index: true },
+    isNewArrival: { type: Boolean, default: false, index: true },
+    isActive: { type: Boolean, default: true, index: true },
+    averageRating: { type: Number, default: 0, min: 0, max: 5 },
+    reviewCount: { type: Number, default: 0, min: 0 },
+    tags: { type: [String], default: [], index: true },
+    isFavorited: { type: Boolean, default: false, index: true },
+    archivedAt: { type: Date, default: null, index: true },
+    deletedAt: { type: Date, default: null, index: true },
+  },
+  { timestamps: true }
+);
+
+productSchema.index({ name: "text", description: "text", tags: "text" });
+
+export const Product: Model<IProduct> =
+  models.Product ?? model<IProduct>("Product", productSchema);
