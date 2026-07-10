@@ -8,6 +8,7 @@ import {
   Receipt,
   MessageCircle,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 
 export interface AdminNavItem {
@@ -24,6 +25,7 @@ export const adminNavItems: AdminNavItem[] = [
   { label: "Invoices", href: "/admin/invoices", icon: Receipt },
   { label: "Customers", href: "/admin/customers", icon: Users },
   { label: "Dry Clean & Tailor", href: "/admin/services", icon: Sparkles },
+  { label: "Reports", href: "/admin/reports", icon: BarChart3 },
   { label: "WhatsApp", href: "/admin/whatsapp", icon: MessageCircle },
 ];
 
