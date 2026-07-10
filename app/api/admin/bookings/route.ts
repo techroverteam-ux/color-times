@@ -13,12 +13,18 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const searchParams = request.nextUrl.searchParams;
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
-  const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") ?? "20")));
+  const pageSize = Math.min(200, Math.max(1, Number(searchParams.get("pageSize") ?? "20")));
   const status = searchParams.get("status");
+  const from = searchParams.get("from");
+  const to = searchParams.get("to");
 
   const filter: Record<string, unknown> = {};
   if (status) {
     filter.status = status;
+  }
+  if (from && to) {
+    filter.rentalStartDate = { $lte: new Date(to) };
+    filter.rentalEndDate = { $gte: new Date(from) };
   }
 
   const [bookings, total] = await Promise.all([

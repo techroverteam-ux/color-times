@@ -4,7 +4,9 @@ import { User } from "@/models/User";
 import { Booking } from "@/models/Booking";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
-import { apiSuccess, apiError } from "@/lib/api/response";
+import { recordAuditLog, diffObjects } from "@/lib/audit/log";
+import { customerUpdateSchema } from "@/lib/validations/customer";
+import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -18,7 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
   await connectToDatabase();
 
   const [customer, bookings] = await Promise.all([
-    User.findById(id).select("name email phone addresses createdAt").lean(),
+    User.findById(id).select("name email phone fatherName addresses createdAt").lean(),
     Booking.find({ customer: id })
       .populate("product", "name images")
       .sort({ createdAt: -1 })
@@ -30,4 +32,74 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
   }
 
   return apiSuccess({ customer, bookings });
+}
+
+export async function PATCH(request: NextRequest, { params }: RouteParams): Promise<Response> {
+  const auth = await requireApiRole(ADMIN_ROLES);
+  if ("error" in auth) return auth.error;
+
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const input = customerUpdateSchema.parse(body);
+
+    await connectToDatabase();
+
+    const before = await User.findById(id).select("name phone fatherName addresses").lean();
+    if (!before) {
+      return apiError("Customer not found", 404);
+    }
+
+    const hasAddressInput = Boolean(
+      input.addressLine1 || input.addressCity || input.addressState || input.addressPostalCode
+    );
+
+    const addresses = [...(before.addresses ?? [])];
+    if (hasAddressInput) {
+      const existing = addresses[0];
+      addresses[0] = {
+        label: existing?.label ?? "Home",
+        line1: input.addressLine1 ?? existing?.line1 ?? "",
+        line2: existing?.line2,
+        city: input.addressCity ?? existing?.city ?? "",
+        state: input.addressState ?? existing?.state ?? "",
+        postalCode: input.addressPostalCode ?? existing?.postalCode ?? "",
+        isDefault: existing?.isDefault ?? true,
+      };
+    }
+
+    const customer = await User.findByIdAndUpdate(
+      id,
+      {
+        name: input.name,
+        phone: input.phone,
+        fatherName: input.fatherName,
+        addresses,
+      },
+      { returnDocument: "after" }
+    ).select("name email phone fatherName addresses createdAt");
+
+    if (!customer) {
+      return apiError("Customer not found", 404);
+    }
+
+    const changes = diffObjects(
+      before as unknown as Record<string, unknown>,
+      customer.toObject() as unknown as Record<string, unknown>
+    );
+
+    if (changes.length > 0) {
+      await recordAuditLog({
+        entityType: "Customer",
+        entityId: id,
+        action: "update",
+        actor: auth.user,
+        changes,
+      });
+    }
+
+    return apiSuccess({ customer });
+  } catch (error) {
+    return apiErrorFromUnknown(error);
+  }
 }

@@ -124,7 +124,11 @@ export function InvoicePaymentDialog({
                   <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
                     <FormControl>
                       <SelectTrigger className="w-full">
-                        <SelectValue />
+                        <SelectValue>
+                          {(value: string) =>
+                            METHOD_OPTIONS.find((option) => option.value === value)?.label ?? value
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>

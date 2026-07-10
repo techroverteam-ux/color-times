@@ -437,7 +437,11 @@ export function ProductsClient({
             }}
           >
             <SelectTrigger className="w-full sm:w-40">
-              <SelectValue />
+              <SelectValue>
+                {(value: string) =>
+                  value === "active" ? "Active" : value === "archived" ? "Archived" : "Trash"
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Active</SelectItem>

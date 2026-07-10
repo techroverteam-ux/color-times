@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { IndianRupee, CalendarCheck, Users, Shirt, ArrowUpRight, Receipt } from "lucide-react";
+import {
+  IndianRupee,
+  CalendarCheck,
+  Users,
+  Shirt,
+  ArrowUpRight,
+  Receipt,
+  RotateCcw,
+} from "lucide-react";
 import { getDashboardStats } from "@/lib/admin/dashboard-stats";
 import { StatCard } from "@/components/admin/stat-card";
 import { RevenueChart } from "@/components/admin/revenue-chart";
@@ -11,7 +19,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           label="Total Revenue"
           value={`₹${stats.totalRevenue.toLocaleString("en-IN")}`}
@@ -23,6 +31,12 @@ export default async function AdminDashboardPage() {
           value={`₹${stats.outstandingBalance.toLocaleString("en-IN")}`}
           icon={Receipt}
           hint="Unpaid on sent invoices"
+        />
+        <StatCard
+          label="Returns Due"
+          value={stats.returnsDue.toLocaleString("en-IN")}
+          icon={RotateCcw}
+          hint="Rentals past their return date"
         />
         <StatCard
           label="Total Bookings"

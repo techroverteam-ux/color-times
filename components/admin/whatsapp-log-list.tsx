@@ -85,7 +85,11 @@ export function WhatsAppLogList() {
           }}
         >
           <SelectTrigger className="w-40">
-            <SelectValue />
+            <SelectValue>
+              {(value: string) =>
+                value === "all" ? "All Statuses" : value === "sent" ? "Sent" : "Failed"
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>

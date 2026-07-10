@@ -7,6 +7,7 @@ export interface IUser extends Document {
   name: string;
   email: string;
   phone?: string;
+  fatherName?: string;
   passwordHash: string;
   role: UserRole;
   isEmailVerified: boolean;
@@ -49,6 +50,7 @@ const userSchema = new Schema<IUser>(
       index: true,
     },
     phone: { type: String, trim: true },
+    fatherName: { type: String, trim: true },
     passwordHash: { type: String, required: true, select: false },
     role: {
       type: String,

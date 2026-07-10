@@ -6,6 +6,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/models/User";
 import { Booking, type BookingStatus } from "@/models/Booking";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
+import { CustomerDetailClient } from "@/components/admin/customer-detail-client";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export const metadata: Metadata = { title: "Customer Detail" };
@@ -19,7 +20,7 @@ export default async function AdminCustomerDetailPage({
   await connectToDatabase();
 
   const [customer, bookings] = await Promise.all([
-    User.findById(id).select("name email phone addresses createdAt").lean(),
+    User.findById(id).select("name email phone fatherName addresses createdAt").lean(),
     Booking.find({ customer: id }).populate("product", "name").sort({ createdAt: -1 }).lean(),
   ]);
 
@@ -36,23 +37,22 @@ export default async function AdminCustomerDetailPage({
         <ArrowLeft className="h-4 w-4" /> Back to Customers
       </Link>
 
-      <div className="rounded-lg border border-border bg-card p-6">
-        <h1 className="font-heading text-2xl">{customer.name}</h1>
-        <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
-          <div>
-            <p className="text-xs uppercase text-muted-foreground">Email</p>
-            <p className="mt-1">{customer.email}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase text-muted-foreground">Phone</p>
-            <p className="mt-1">{customer.phone ?? "—"}</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase text-muted-foreground">Joined</p>
-            <p className="mt-1">{new Date(customer.createdAt).toLocaleDateString("en-IN")}</p>
-          </div>
-        </div>
-      </div>
+      <CustomerDetailClient
+        initialCustomer={{
+          _id: String(customer._id),
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          fatherName: customer.fatherName,
+          createdAt: customer.createdAt.toISOString(),
+          addresses: customer.addresses.map((address) => ({
+            line1: address.line1,
+            city: address.city,
+            state: address.state,
+            postalCode: address.postalCode,
+          })),
+        }}
+      />
 
       <div>
         <h2 className="font-heading text-lg">Booking History</h2>

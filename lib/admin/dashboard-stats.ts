@@ -14,6 +14,7 @@ export interface DashboardStats {
   totalCustomers: number;
   totalProducts: number;
   outstandingBalance: number;
+  returnsDue: number;
   recentBookings: {
     _id: string;
     bookingNumber: string;
@@ -40,6 +41,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     activeRentals,
     totalCustomers,
     totalProducts,
+    returnsDue,
     outstandingBalanceResult,
     recentBookings,
     monthlyRevenue,
@@ -52,6 +54,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     Booking.countDocuments({ status: "in_use" }),
     User.countDocuments({ role: "customer" }),
     Product.countDocuments({ isActive: true, deletedAt: null }),
+    Booking.countDocuments({
+      status: { $in: ["confirmed", "in_use"] },
+      rentalEndDate: { $lt: new Date() },
+    }),
     Invoice.aggregate([
       {
         $match: {
@@ -91,6 +97,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     activeRentals,
     totalCustomers,
     totalProducts,
+    returnsDue,
     outstandingBalance: outstandingBalanceResult[0]?.total ?? 0,
     recentBookings: recentBookings.map((booking) => ({
       _id: String(booking._id),

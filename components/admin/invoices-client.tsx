@@ -259,7 +259,11 @@ export function InvoicesClient({
           }}
         >
           <SelectTrigger className="w-48">
-            <SelectValue />
+            <SelectValue>
+              {(value: string) =>
+                STATUS_FILTERS.find((option) => option.value === value)?.label ?? value
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {STATUS_FILTERS.map((option) => (
@@ -277,7 +281,7 @@ export function InvoicesClient({
           }}
         >
           <SelectTrigger className="w-36">
-            <SelectValue />
+            <SelectValue>{(value: string) => (value === "active" ? "Active" : "Trash")}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="active">Active</SelectItem>
