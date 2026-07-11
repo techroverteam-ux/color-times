@@ -2,6 +2,16 @@ import { Schema, model, models, type Document, type Model, type Types } from "mo
 
 export type ProductSize = "XS" | "S" | "M" | "L" | "XL" | "XXL" | "Custom";
 
+export type ProductStatus = "available" | "booked" | "under_dry_cleaning" | "under_repair" | "returned";
+
+export const PRODUCT_STATUSES: ProductStatus[] = [
+  "available",
+  "booked",
+  "under_dry_cleaning",
+  "under_repair",
+  "returned",
+];
+
 export interface IProductVariant {
   size: ProductSize;
   quantityInStock: number;
@@ -19,6 +29,7 @@ export interface IProduct extends Document {
   fabric: string;
   images: string[];
   variants: IProductVariant[];
+  status: ProductStatus;
   rentalPricePerDay: number;
   retailValue: number;
   securityDeposit: number;
@@ -59,6 +70,12 @@ const productSchema = new Schema<IProduct>(
     fabric: { type: String, required: true },
     images: { type: [String], required: true, validate: (v: string[]) => v.length > 0 },
     variants: { type: [variantSchema], required: true },
+    status: {
+      type: String,
+      enum: PRODUCT_STATUSES,
+      default: "available",
+      index: true,
+    },
     rentalPricePerDay: { type: Number, required: true, min: 0 },
     retailValue: { type: Number, required: true, min: 0 },
     securityDeposit: { type: Number, required: true, min: 0 },

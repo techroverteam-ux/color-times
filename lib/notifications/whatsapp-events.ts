@@ -27,19 +27,12 @@ interface NotifyContext {
   variables: Record<string, string>;
 }
 
-async function dispatchWhatsAppEvent(
+async function sendTemplatedNotification(
   triggerEvent: WhatsAppTriggerEvent,
-  autoSendKey: AutoSendKey,
+  settings: WhatsAppSettingsInput,
   context: NotifyContext
 ): Promise<void> {
   try {
-    await connectToDatabase();
-
-    const settingsDoc = await Settings.findOne({ module: SETTINGS_MODULE }).lean();
-    const settings = (settingsDoc?.data as WhatsAppSettingsInput) ?? DEFAULT_WHATSAPP_SETTINGS;
-
-    if (!settings.enabled || !settings[autoSendKey]) return;
-
     const template = await WhatsAppTemplate.findOne({ triggerEvent, isActive: true }).lean();
     if (!template) return;
 
@@ -89,22 +82,64 @@ async function dispatchWhatsAppEvent(
   }
 }
 
+async function loadSettings(): Promise<WhatsAppSettingsInput> {
+  await connectToDatabase();
+  const settingsDoc = await Settings.findOne({ module: SETTINGS_MODULE }).lean();
+  return (settingsDoc?.data as WhatsAppSettingsInput) ?? DEFAULT_WHATSAPP_SETTINGS;
+}
+
+async function dispatchAutoWhatsAppEvent(
+  triggerEvent: WhatsAppTriggerEvent,
+  autoSendKey: AutoSendKey,
+  context: NotifyContext
+): Promise<void> {
+  try {
+    const settings = await loadSettings();
+    if (!settings.enabled || !settings[autoSendKey]) return;
+    await sendTemplatedNotification(triggerEvent, settings, context);
+  } catch {
+    // Notifications must never break the calling request/route.
+  }
+}
+
+/** Manual, staff-initiated sends (reminders) — no per-event auto-send toggle, just the global on/off switch. */
+async function dispatchManualWhatsAppEvent(
+  triggerEvent: WhatsAppTriggerEvent,
+  context: NotifyContext
+): Promise<void> {
+  try {
+    const settings = await loadSettings();
+    if (!settings.enabled) return;
+    await sendTemplatedNotification(triggerEvent, settings, context);
+  } catch {
+    // Notifications must never break the calling request/route.
+  }
+}
+
 export function notifyBookingConfirmed(context: NotifyContext): Promise<void> {
-  return dispatchWhatsAppEvent("booking_confirmed", "autoSendOnBookingConfirmed", context);
+  return dispatchAutoWhatsAppEvent("booking_confirmed", "autoSendOnBookingConfirmed", context);
 }
 
 export function notifyBookingReturned(context: NotifyContext): Promise<void> {
-  return dispatchWhatsAppEvent("booking_returned", "autoSendOnBookingReturned", context);
+  return dispatchAutoWhatsAppEvent("booking_returned", "autoSendOnBookingReturned", context);
 }
 
 export function notifyBookingCancelled(context: NotifyContext): Promise<void> {
-  return dispatchWhatsAppEvent("booking_cancelled", "autoSendOnBookingCancelled", context);
+  return dispatchAutoWhatsAppEvent("booking_cancelled", "autoSendOnBookingCancelled", context);
 }
 
 export function notifyInvoiceSent(context: NotifyContext): Promise<void> {
-  return dispatchWhatsAppEvent("invoice_sent", "autoSendOnInvoiceSent", context);
+  return dispatchAutoWhatsAppEvent("invoice_sent", "autoSendOnInvoiceSent", context);
 }
 
 export function notifyPaymentReceived(context: NotifyContext): Promise<void> {
-  return dispatchWhatsAppEvent("payment_received", "autoSendOnPaymentReceived", context);
+  return dispatchAutoWhatsAppEvent("payment_received", "autoSendOnPaymentReceived", context);
+}
+
+export function notifyBookingReminder(context: NotifyContext): Promise<void> {
+  return dispatchManualWhatsAppEvent("booking_reminder", context);
+}
+
+export function notifyPaymentReminder(context: NotifyContext): Promise<void> {
+  return dispatchManualWhatsAppEvent("payment_reminder", context);
 }

@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Product } from "@/models/Product";
+import "@/models/Category";
+import { Settings } from "@/models/Settings";
 import { productSchema } from "@/lib/validations/product";
+import { DEFAULT_INVENTORY_SETTINGS } from "@/lib/validations/inventory-settings";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog, diffObjects } from "@/lib/audit/log";
@@ -42,9 +45,28 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
       return apiError("Product not found", 404);
     }
 
-    const product = await Product.findByIdAndUpdate(id, input, { returnDocument: "after" });
+    let product = await Product.findByIdAndUpdate(id, input, { returnDocument: "after" });
     if (!product) {
       return apiError("Product not found", 404);
+    }
+
+    // Auto-archive products that have gone out of stock, if enabled.
+    if (input.variants && !product.archivedAt) {
+      const totalStock = product.variants.reduce((sum, v) => sum + v.quantityInStock, 0);
+      if (totalStock === 0) {
+        const inventorySettingsDoc = await Settings.findOne({ module: "inventory" }).lean();
+        const inventorySettings =
+          (inventorySettingsDoc?.data as { autoArchiveOutOfStock: boolean } | undefined) ??
+          DEFAULT_INVENTORY_SETTINGS;
+        if (inventorySettings.autoArchiveOutOfStock) {
+          product =
+            (await Product.findByIdAndUpdate(
+              id,
+              { archivedAt: new Date() },
+              { returnDocument: "after" }
+            )) ?? product;
+        }
+      }
     }
 
     const changes = diffObjects(

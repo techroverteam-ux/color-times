@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { AdminNavLinks } from "@/components/admin/nav-links";
+import { GlobalSearch } from "@/components/admin/global-search";
 import { adminNavItems } from "@/lib/config/admin-nav";
 import { siteConfig } from "@/lib/config/site";
 import { useAdminTheme } from "@/components/admin/theme-provider";
@@ -100,6 +101,7 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
       </div>
 
       <div className="flex items-center gap-2">
+        <GlobalSearch />
         <Button
           variant="ghost"
           size="icon"

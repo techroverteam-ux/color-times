@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
+import { CustomerImportDialog } from "@/components/admin/customer-import-dialog";
 import { formatDate } from "@/lib/utils";
 
 interface CustomerRow {
@@ -74,7 +75,13 @@ export function CustomersClient({
             className="pl-9"
           />
         </div>
-        <p className="text-sm text-muted-foreground">{pagination.total} customers</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">{pagination.total} customers</p>
+          <CustomerImportDialog />
+          <ButtonLink href="/admin/customers/new" size="sm">
+            New Customer
+          </ButtonLink>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border bg-card">

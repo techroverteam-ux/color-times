@@ -5,9 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Pencil, X } from "lucide-react";
+import { Archive, Loader2, Pencil, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -28,6 +29,7 @@ interface CustomerDetail {
   email: string;
   phone?: string;
   fatherName?: string;
+  isActive: boolean;
   createdAt: string;
   addresses: {
     line1: string;
@@ -72,6 +74,24 @@ export function CustomerDetailClient({ initialCustomer }: { initialCustomer: Cus
       setCustomer(updated);
       queryClient.invalidateQueries({ queryKey: ["admin", "customers"] });
       setEditing(false);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async () => {
+      const action = customer.isActive ? "archive" : "restore";
+      const res = await fetch(`/api/admin/customers/${customer._id}/${action}`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      return json.data.customer as { isActive: boolean };
+    },
+    onSuccess: (updated) => {
+      toast.success(updated.isActive ? "Customer restored" : "Customer archived");
+      setCustomer((prev) => ({ ...prev, isActive: updated.isActive }));
+      queryClient.invalidateQueries({ queryKey: ["admin", "customers"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -205,10 +225,30 @@ export function CustomerDetailClient({ initialCustomer }: { initialCustomer: Cus
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl">{customer.name}</h1>
-        <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-          <Pencil className="h-4 w-4" /> Edit
-        </Button>
+        <div className="flex items-center gap-3">
+          <h1 className="font-heading text-2xl">{customer.name}</h1>
+          {!customer.isActive && <Badge variant="secondary">Inactive</Badge>}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={toggleActiveMutation.isPending}
+            onClick={() => toggleActiveMutation.mutate()}
+          >
+            {toggleActiveMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : customer.isActive ? (
+              <Archive className="h-4 w-4" />
+            ) : (
+              <RotateCcw className="h-4 w-4" />
+            )}
+            {customer.isActive ? "Archive" : "Restore"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+            <Pencil className="h-4 w-4" /> Edit
+          </Button>
+        </div>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
         <div>

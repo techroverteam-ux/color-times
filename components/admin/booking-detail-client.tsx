@@ -1,0 +1,292 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Bell, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
+import { ReturnBookingDialog } from "@/components/admin/return-booking-dialog";
+import { AuditLogList } from "@/components/admin/audit-log-list";
+import { formatDate } from "@/lib/utils";
+import type { BookingStatus, ReturnCondition } from "@/models/Booking";
+
+const REMINDABLE_STATUSES: BookingStatus[] = ["inquiry", "pending_payment", "confirmed"];
+
+const STATUS_OPTIONS: BookingStatus[] = [
+  "inquiry",
+  "pending_payment",
+  "confirmed",
+  "in_use",
+  "returned",
+  "cancelled",
+];
+
+const RETURN_CONDITION_LABELS: Record<ReturnCondition, string> = {
+  good: "Good — no issues",
+  minor_damage: "Minor damage",
+  major_damage: "Major damage",
+  missing_items: "Missing items",
+};
+
+interface BookingDetail {
+  _id: string;
+  bookingNumber: string;
+  status: BookingStatus;
+  customer: { name: string; email: string; phone?: string } | null;
+  product: { name: string; images: string[]; sku: string } | null;
+  size: string;
+  rentalStartDate: string;
+  rentalEndDate: string;
+  eventDate: string;
+  rentalFee: number;
+  securityDeposit: number;
+  totalAmount: number;
+  deliveryAddress: string;
+  notes?: string;
+  returnCondition?: ReturnCondition;
+  returnNotes?: string;
+  returnedAt?: string | null;
+  createdAt: string;
+}
+
+function formatCurrency(value: number): string {
+  return `₹${value.toLocaleString("en-IN")}`;
+}
+
+async function fetchBooking(id: string): Promise<BookingDetail> {
+  const res = await fetch(`/api/admin/bookings/${id}`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error);
+  return json.data.booking;
+}
+
+export function BookingDetailClient({ initialBooking }: { initialBooking: BookingDetail }) {
+  const queryClient = useQueryClient();
+  const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+
+  const { data: booking = initialBooking } = useQuery({
+    queryKey: ["admin", "booking", initialBooking._id],
+    queryFn: () => fetchBooking(initialBooking._id),
+    initialData: initialBooking,
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async (nextStatus: BookingStatus) => {
+      const res = await fetch(`/api/admin/bookings/${booking._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      return json.data.booking;
+    },
+    onSuccess: () => {
+      toast.success("Booking status updated");
+      queryClient.invalidateQueries({ queryKey: ["admin", "booking", booking._id] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "bookings"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const remindMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/admin/bookings/${booking._id}/remind`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      return json.data;
+    },
+    onSuccess: () => toast.success("Reminder sent"),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="font-heading text-2xl">{booking.bookingNumber}</h1>
+            <BookingStatusBadge status={booking.status} />
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Created {formatDate(booking.createdAt)}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {REMINDABLE_STATUSES.includes(booking.status) && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={remindMutation.isPending}
+              onClick={() => remindMutation.mutate()}
+            >
+              {remindMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Bell className="h-4 w-4" />
+              )}
+              Send Reminder
+            </Button>
+          )}
+          <Select
+            value={booking.status}
+            onValueChange={(value) => {
+              if (!value || value === booking.status) return;
+              if (value === "returned") {
+                setReturnDialogOpen(true);
+                return;
+              }
+              updateStatusMutation.mutate(value as BookingStatus);
+            }}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue>{(value: string) => value.replace("_", " ")}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option.replace("_", " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Tabs defaultValue="details">
+        <TabsList>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details" className="mt-4 space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h2 className="font-heading text-lg">Customer</h2>
+              <p className="mt-2 text-sm">{booking.customer?.name ?? "—"}</p>
+              <p className="text-sm text-muted-foreground">{booking.customer?.email}</p>
+              {booking.customer?.phone && (
+                <p className="text-sm text-muted-foreground">{booking.customer.phone}</p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h2 className="font-heading text-lg">Dress</h2>
+              <div className="mt-2 flex items-center gap-3">
+                {booking.product?.images?.[0] && (
+                  <Image
+                    src={booking.product.images[0]}
+                    alt={booking.product.name}
+                    width={48}
+                    height={48}
+                    className="h-12 w-12 rounded-md object-cover"
+                  />
+                )}
+                <div>
+                  <p className="text-sm font-medium">{booking.product?.name ?? "—"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {booking.product?.sku} &middot; Size {booking.size}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h2 className="font-heading text-lg">Rental Period</h2>
+              <div className="mt-2 space-y-1 text-sm">
+                <p className="flex justify-between">
+                  <span className="text-muted-foreground">Event Date</span>
+                  <span>{formatDate(booking.eventDate)}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span className="text-muted-foreground">Rental Start</span>
+                  <span>{formatDate(booking.rentalStartDate)}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span className="text-muted-foreground">Rental End</span>
+                  <span>{formatDate(booking.rentalEndDate)}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-secondary/40 p-6">
+              <h2 className="font-heading text-lg">Billing</h2>
+              <div className="mt-2 space-y-1 text-sm">
+                <p className="flex justify-between">
+                  <span className="text-muted-foreground">Rental Fee</span>
+                  <span>{formatCurrency(booking.rentalFee)}</span>
+                </p>
+                <p className="flex justify-between">
+                  <span className="text-muted-foreground">Security Deposit</span>
+                  <span>{formatCurrency(booking.securityDeposit)}</span>
+                </p>
+                <p className="flex justify-between font-medium">
+                  <span>Total</span>
+                  <span>{formatCurrency(booking.totalAmount)}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-card p-6">
+            <h2 className="font-heading text-lg">Delivery Address</h2>
+            <p className="mt-2 text-sm text-muted-foreground">{booking.deliveryAddress}</p>
+          </div>
+
+          {booking.notes && (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h2 className="font-heading text-lg">Notes</h2>
+              <p className="mt-2 text-sm text-muted-foreground">{booking.notes}</p>
+            </div>
+          )}
+
+          {(booking.returnCondition || booking.returnNotes) && (
+            <div className="rounded-lg border border-border bg-card p-6">
+              <h2 className="font-heading text-lg">Return Details</h2>
+              <div className="mt-2 space-y-1 text-sm">
+                {booking.returnedAt && (
+                  <p className="flex justify-between">
+                    <span className="text-muted-foreground">Returned On</span>
+                    <span>{formatDate(booking.returnedAt)}</span>
+                  </p>
+                )}
+                {booking.returnCondition && (
+                  <p className="flex justify-between">
+                    <span className="text-muted-foreground">Condition</span>
+                    <span>{RETURN_CONDITION_LABELS[booking.returnCondition]}</span>
+                  </p>
+                )}
+                {booking.returnNotes && (
+                  <p className="mt-2 text-muted-foreground">{booking.returnNotes}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="activity" className="mt-4">
+          <div className="rounded-lg border border-border bg-card p-6">
+            <AuditLogList entityType="Booking" entityId={booking._id} />
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <ReturnBookingDialog
+        bookingId={booking._id}
+        open={returnDialogOpen}
+        onOpenChange={setReturnDialogOpen}
+      />
+    </div>
+  );
+}

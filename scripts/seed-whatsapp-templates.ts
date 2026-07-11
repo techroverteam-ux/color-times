@@ -28,7 +28,7 @@ const STARTER_TEMPLATES = [
     triggerEvent: "invoice_sent" as const,
     brevoTemplateId: 4,
     previewBody:
-      "Hi {{customerName}}, invoice {{invoiceNumber}} for ₹{{totalAmount}} is ready. Amount due: ₹{{amountDue}} by {{dueDate}}. — Color Times Boutique",
+      "Hi {{customerName}}, invoice {{invoiceNumber}} for ₹{{totalAmount}} is ready. Amount due: ₹{{amountDue}} by {{dueDate}}. View/download: {{invoicePdfUrl}} — Color Times Boutique",
   },
   {
     name: "Payment Received",

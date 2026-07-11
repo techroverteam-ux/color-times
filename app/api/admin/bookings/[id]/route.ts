@@ -1,9 +1,12 @@
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Booking } from "@/models/Booking";
+import { Product } from "@/models/Product";
 import { bookingStatusSchema } from "@/lib/validations/booking";
+import { ACTIVE_BOOKING_STATUSES } from "@/lib/admin/booking-availability";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
+import { recordAuditLog } from "@/lib/audit/log";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 import {
   notifyBookingConfirmed,
@@ -45,16 +48,51 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
     const input = bookingStatusSchema.parse(body);
 
     await connectToDatabase();
-    const booking = await Booking.findByIdAndUpdate(
-      id,
-      { status: input.status },
-      { returnDocument: "after" }
-    )
+
+    const before = await Booking.findById(id).lean();
+    if (!before) {
+      return apiError("Booking not found", 404);
+    }
+
+    const update: Record<string, unknown> = { status: input.status };
+    if (input.status === "returned") {
+      update.returnedAt = new Date();
+      if (input.returnCondition) update.returnCondition = input.returnCondition;
+      if (input.returnNotes) update.returnNotes = input.returnNotes;
+    }
+
+    const booking = await Booking.findByIdAndUpdate(id, update, { returnDocument: "after" })
       .populate("customer", "name phone")
       .populate("product", "name");
 
     if (!booking) {
       return apiError("Booking not found", 404);
+    }
+
+    if (input.status !== before.status) {
+      await recordAuditLog({
+        entityType: "Booking",
+        entityId: id,
+        action: "status_change",
+        actor: auth.user,
+        changes: [{ field: "status", from: before.status, to: input.status }],
+      });
+    }
+
+    // Keep the dress's inventory status in sync with the booking lifecycle.
+    if (input.status === "confirmed" || input.status === "in_use") {
+      await Product.findByIdAndUpdate(booking.product, { status: "booked" });
+    } else if (input.status === "returned") {
+      await Product.findByIdAndUpdate(booking.product, { status: "returned" });
+    } else if (input.status === "cancelled") {
+      const stillActive = await Booking.exists({
+        product: booking.product,
+        status: { $in: ACTIVE_BOOKING_STATUSES },
+        _id: { $ne: booking._id },
+      });
+      if (!stillActive) {
+        await Product.findByIdAndUpdate(booking.product, { status: "available" });
+      }
     }
 
     const customer = booking.customer as unknown as { name: string; phone?: string } | null;

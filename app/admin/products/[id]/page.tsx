@@ -44,6 +44,7 @@ export default async function EditProductPage({
           fabric: product.fabric,
           images: product.images,
           variants: product.variants,
+          status: product.status,
           rentalPricePerDay: product.rentalPricePerDay,
           retailValue: product.retailValue,
           securityDeposit: product.securityDeposit,

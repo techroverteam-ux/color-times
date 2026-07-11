@@ -20,6 +20,9 @@ export const productSchema = z.object({
   fabric: z.string().trim().min(2, "Fabric is required"),
   images: z.array(z.string()).min(1, "At least one image is required"),
   variants: z.array(productVariantSchema).min(1, "At least one size variant is required"),
+  status: z
+    .enum(["available", "booked", "under_dry_cleaning", "under_repair", "returned"])
+    .optional(),
   rentalPricePerDay: z.number().min(0),
   retailValue: z.number().min(0),
   securityDeposit: z.number().min(0),

@@ -386,6 +386,44 @@ export function ProductForm({ categories, productId, defaultValues }: ProductFor
           </div>
         </section>
 
+        {isEditing && (
+          <section className="rounded-lg border border-border bg-card p-6">
+            <h2 className="font-heading text-lg">Inventory Status</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Updates automatically when a booking is confirmed, returned, or sent for dry
+              cleaning/repair. Override manually if needed.
+            </p>
+            <div className="mt-4 max-w-xs">
+              <FormField
+                control={form.control}
+                name="status"
+                render={() => (
+                  <FormItem>
+                    <Select
+                      value={form.watch("status") ?? "available"}
+                      onValueChange={(value) => form.setValue("status", value as ProductInput["status"])}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="available">Available</SelectItem>
+                        <SelectItem value="booked">Booked</SelectItem>
+                        <SelectItem value="under_dry_cleaning">Under Dry Cleaning</SelectItem>
+                        <SelectItem value="under_repair">Under Repair</SelectItem>
+                        <SelectItem value="returned">Returned</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </section>
+        )}
+
         <section className="rounded-lg border border-border bg-card p-6">
           <h2 className="font-heading text-lg">Visibility</h2>
           <div className="mt-4 flex flex-wrap gap-6">

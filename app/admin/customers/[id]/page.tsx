@@ -20,7 +20,7 @@ export default async function AdminCustomerDetailPage({
   await connectToDatabase();
 
   const [customer, bookings] = await Promise.all([
-    User.findById(id).select("name email phone fatherName addresses createdAt").lean(),
+    User.findById(id).select("name email phone fatherName addresses isActive createdAt").lean(),
     Booking.find({ customer: id }).populate("product", "name").sort({ createdAt: -1 }).lean(),
   ]);
 
@@ -44,6 +44,7 @@ export default async function AdminCustomerDetailPage({
           email: customer.email,
           phone: customer.phone,
           fatherName: customer.fatherName,
+          isActive: customer.isActive,
           createdAt: customer.createdAt.toISOString(),
           addresses: customer.addresses.map((address) => ({
             line1: address.line1,

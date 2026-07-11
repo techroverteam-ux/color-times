@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Product } from "@/models/Product";
+import "@/models/Category";
 import { productSchema } from "@/lib/validations/product";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";

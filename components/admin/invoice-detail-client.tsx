@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, Printer } from "lucide-react";
+import { Bell, Download, Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
@@ -150,6 +150,17 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Invoic
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const remindMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/admin/invoices/${invoice._id}/remind`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      return json.data;
+    },
+    onSuccess: () => toast.success("Payment reminder sent"),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -201,9 +212,24 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Invoic
             </Button>
           )}
           {["sent", "partially_paid", "overdue"].includes(invoice.status) && (
-            <Button size="sm" onClick={() => setPaymentDialogOpen(true)}>
-              Record Payment
-            </Button>
+            <>
+              <Button size="sm" onClick={() => setPaymentDialogOpen(true)}>
+                Record Payment
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={remindMutation.isPending}
+                onClick={() => remindMutation.mutate()}
+              >
+                {remindMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Bell className="h-4 w-4" />
+                )}
+                Send Reminder
+              </Button>
+            </>
           )}
           {invoice.status === "paid" && invoice.securityDeposit > 0 && !invoice.depositRefunded && (
             <Button

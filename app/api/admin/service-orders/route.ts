@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { ServiceOrder } from "@/models/ServiceOrder";
+import { Product } from "@/models/Product";
 import "@/models/Booking";
 import { serviceOrderSchema } from "@/lib/validations/service-order";
 import { requireApiRole } from "@/lib/api/require-role";
@@ -63,6 +64,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       expectedReturnDate: new Date(input.expectedReturnDate),
       notes: input.notes,
       status: "pending",
+    });
+
+    await Product.findByIdAndUpdate(input.product, {
+      status: input.serviceType === "dry_clean" ? "under_dry_cleaning" : "under_repair",
     });
 
     await recordAuditLog({

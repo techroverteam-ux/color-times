@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarDays, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import {
   Select,
   SelectContent,
@@ -14,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { BookingCalendar } from "@/components/admin/booking-calendar";
+import { ReturnBookingDialog } from "@/components/admin/return-booking-dialog";
 import { cn, formatDate } from "@/lib/utils";
 import type { BookingStatus } from "@/models/Booking";
 
@@ -78,6 +81,7 @@ export function BookingsClient({
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("all");
   const [view, setView] = useState<"table" | "calendar">("table");
+  const [returnDialogBookingId, setReturnDialogBookingId] = useState<string | null>(null);
 
   const isDefaultQuery = page === 1 && status === "all";
 
@@ -169,11 +173,16 @@ export function BookingsClient({
             </button>
           </div>
         </div>
-        {view === "table" && (
-          <p className="text-sm text-muted-foreground">
-            {pagination.total} bookings
-          </p>
-        )}
+        <div className="flex items-center gap-3">
+          {view === "table" && (
+            <p className="text-sm text-muted-foreground">
+              {pagination.total} bookings
+            </p>
+          )}
+          <ButtonLink href="/admin/bookings/new" size="sm">
+            New Booking
+          </ButtonLink>
+        </div>
       </div>
 
       {view === "calendar" ? (
@@ -200,7 +209,12 @@ export function BookingsClient({
                     className="border-b border-border last:border-0"
                   >
                     <td className="px-4 py-3 font-medium">
-                      {booking.bookingNumber}
+                      <Link
+                        href={`/admin/bookings/${booking._id}`}
+                        className="hover:text-accent hover:underline"
+                      >
+                        {booking.bookingNumber}
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
                       <p>{booking.customer?.name ?? "—"}</p>
@@ -225,12 +239,15 @@ export function BookingsClient({
                       <Select
                         value={booking.status}
                         onValueChange={(value) => {
-                          if (value && value !== booking.status) {
-                            updateStatusMutation.mutate({
-                              id: booking._id,
-                              status: value as BookingStatus,
-                            });
+                          if (!value || value === booking.status) return;
+                          if (value === "returned") {
+                            setReturnDialogBookingId(booking._id);
+                            return;
                           }
+                          updateStatusMutation.mutate({
+                            id: booking._id,
+                            status: value as BookingStatus,
+                          });
                         }}
                       >
                         <SelectTrigger className="ml-auto w-40" size="sm">
@@ -290,6 +307,12 @@ export function BookingsClient({
           )}
         </>
       )}
+
+      <ReturnBookingDialog
+        bookingId={returnDialogBookingId}
+        open={returnDialogBookingId !== null}
+        onOpenChange={(open) => !open && setReturnDialogBookingId(null)}
+      />
     </div>
   );
 }

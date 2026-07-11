@@ -6,6 +6,7 @@ import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
 import { notifyInvoiceSent } from "@/lib/notifications/whatsapp-events";
 import { formatDate } from "@/lib/utils";
+import { siteConfig } from "@/lib/config/site";
 import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function POST(
@@ -52,6 +53,7 @@ export async function POST(
         totalAmount: String(invoice.total),
         amountDue: String(invoice.amountDue),
         dueDate: formatDate(invoice.dueDate),
+        invoicePdfUrl: `${siteConfig.url}/api/invoices/${id}/pdf`,
       },
     });
   }

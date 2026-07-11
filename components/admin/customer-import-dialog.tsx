@@ -23,24 +23,16 @@ interface ImportResult {
 
 const TEMPLATE_HEADERS = [
   "name",
-  "sku",
-  "category",
-  "designer",
-  "description",
-  "color",
-  "fabric",
-  "image",
-  "sizes",
-  "rentalPricePerDay",
-  "retailValue",
-  "securityDeposit",
-  "isActive",
-  "isFeatured",
-  "isNewArrival",
-  "tags",
+  "email",
+  "phone",
+  "fatherName",
+  "addressLine1",
+  "addressCity",
+  "addressState",
+  "addressPostalCode",
 ];
 
-export function ProductImportDialog() {
+export function CustomerImportDialog() {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<Record<string, string>[]>([]);
@@ -50,7 +42,7 @@ export function ProductImportDialog() {
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/products/import", {
+      const res = await fetch("/api/admin/customers/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rows }),
@@ -61,8 +53,8 @@ export function ProductImportDialog() {
     },
     onSuccess: (data) => {
       setResults(data.results);
-      toast.success(`Imported ${data.createdCount} product(s), skipped ${data.skippedCount}`);
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      toast.success(`Imported ${data.createdCount} customer(s), skipped ${data.skippedCount}`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "customers"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -84,26 +76,18 @@ export function ProductImportDialog() {
 
   function handleDownloadTemplate() {
     downloadCsv(
-      "product-import-template",
+      "customer-import-template",
       TEMPLATE_HEADERS,
       [
         [
-          "Sample Silk Gown",
-          "",
-          "party-wear",
-          "Designer Name",
-          "A beautiful sample description of the product.",
-          "Emerald",
-          "Silk",
-          "/images/placeholder/dresses/dress-1.png",
-          "S:3,M:5,L:2",
-          "2500",
-          "30000",
-          "5000",
-          "true",
-          "false",
-          "true",
-          "silk,emerald",
+          "Priya Sharma",
+          "priya.sharma@example.com",
+          "9876543210",
+          "Rajesh Sharma",
+          "12 MG Road",
+          "Bengaluru",
+          "Karnataka",
+          "560001",
         ],
       ]
     );
@@ -118,14 +102,14 @@ export function ProductImportDialog() {
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Upload className="h-4 w-4" />
         Import
       </Button>
       <Dialog open={open} onOpenChange={(next) => (next ? setOpen(true) : handleClose())}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Bulk Import Products (CSV or Excel)</DialogTitle>
+            <DialogTitle>Bulk Import Customers (CSV or Excel)</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -153,18 +137,16 @@ export function ProductImportDialog() {
                   <thead className="sticky top-0 bg-secondary/60">
                     <tr>
                       <th className="px-2 py-1.5 text-left">Name</th>
-                      <th className="px-2 py-1.5 text-left">Category</th>
-                      <th className="px-2 py-1.5 text-left">Sizes</th>
-                      <th className="px-2 py-1.5 text-left">Price/Day</th>
+                      <th className="px-2 py-1.5 text-left">Email</th>
+                      <th className="px-2 py-1.5 text-left">Phone</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((row, index) => (
                       <tr key={index} className="border-t border-border">
                         <td className="px-2 py-1.5">{row.name}</td>
-                        <td className="px-2 py-1.5">{row.category}</td>
-                        <td className="px-2 py-1.5">{row.sizes}</td>
-                        <td className="px-2 py-1.5">{row.rentalPricePerDay}</td>
+                        <td className="px-2 py-1.5">{row.email}</td>
+                        <td className="px-2 py-1.5">{row.phone}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -204,7 +186,7 @@ export function ProductImportDialog() {
               onClick={() => importMutation.mutate()}
             >
               {importMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Import {rows.length > 0 ? `${rows.length} Product(s)` : ""}
+              Import {rows.length > 0 ? `${rows.length} Customer(s)` : ""}
             </Button>
           </DialogFooter>
         </DialogContent>

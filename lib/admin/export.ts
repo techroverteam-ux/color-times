@@ -129,3 +129,47 @@ export function parseCsvFile<T = Record<string, string>>(file: File): Promise<T[
     });
   });
 }
+
+export async function parseXlsxFile<T = Record<string, string>>(file: File): Promise<T[]> {
+  const workbook = new ExcelJS.Workbook();
+  const buffer = await file.arrayBuffer();
+  await workbook.xlsx.load(buffer);
+
+  const sheet = workbook.worksheets[0];
+  if (!sheet) return [];
+
+  const headerRow = sheet.getRow(1);
+  const headers: string[] = [];
+  headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+    headers[colNumber] = String(cell.value ?? "").trim();
+  });
+
+  const rows: T[] = [];
+  sheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const record: Record<string, string> = {};
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      const header = headers[colNumber];
+      if (!header) return;
+      const value = cell.value;
+      record[header] =
+        value === null || value === undefined
+          ? ""
+          : typeof value === "object" && "text" in value
+            ? String((value as { text: string }).text)
+            : String(value);
+    });
+    if (Object.values(record).some((value) => value !== "")) {
+      rows.push(record as T);
+    }
+  });
+
+  return rows;
+}
+
+export function parseSpreadsheetFile<T = Record<string, string>>(file: File): Promise<T[]> {
+  const isXlsx =
+    file.name.toLowerCase().endsWith(".xlsx") ||
+    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  return isXlsx ? parseXlsxFile<T>(file) : parseCsvFile<T>(file);
+}

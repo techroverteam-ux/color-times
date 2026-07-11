@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
   await connectToDatabase();
 
   const [customer, bookings] = await Promise.all([
-    User.findById(id).select("name email phone fatherName addresses createdAt").lean(),
+    User.findById(id).select("name email phone fatherName addresses isActive createdAt").lean(),
     Booking.find({ customer: id })
       .populate("product", "name images")
       .sort({ createdAt: -1 })

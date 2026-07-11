@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { ServiceOrder } from "@/models/ServiceOrder";
+import { Product } from "@/models/Product";
 import "@/models/Booking";
 import { serviceOrderUpdateSchema } from "@/lib/validations/service-order";
 import { requireApiRole } from "@/lib/api/require-role";
@@ -67,6 +68,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
     const order = await ServiceOrder.findByIdAndUpdate(id, update, { returnDocument: "after" });
     if (!order) {
       return apiError("Service order not found", 404);
+    }
+
+    if (input.status === "completed" || input.status === "cancelled") {
+      await Product.findByIdAndUpdate(order.product, { status: "available" });
     }
 
     const changes = diffObjects(

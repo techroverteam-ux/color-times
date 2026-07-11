@@ -8,6 +8,15 @@ export type BookingStatus =
   | "returned"
   | "cancelled";
 
+export type ReturnCondition = "good" | "minor_damage" | "major_damage" | "missing_items";
+
+export const RETURN_CONDITIONS: ReturnCondition[] = [
+  "good",
+  "minor_damage",
+  "major_damage",
+  "missing_items",
+];
+
 export interface IBooking extends Document {
   _id: Types.ObjectId;
   bookingNumber: string;
@@ -23,6 +32,9 @@ export interface IBooking extends Document {
   totalAmount: number;
   deliveryAddress: string;
   notes?: string;
+  returnCondition?: ReturnCondition;
+  returnNotes?: string;
+  returnedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +59,9 @@ const bookingSchema = new Schema<IBooking>(
     totalAmount: { type: Number, required: true, min: 0 },
     deliveryAddress: { type: String, required: true },
     notes: { type: String },
+    returnCondition: { type: String, enum: RETURN_CONDITIONS },
+    returnNotes: { type: String },
+    returnedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
