@@ -10,6 +10,7 @@ import {
   refreshTokenCookieOptions,
 } from "@/lib/auth/cookies";
 import { registerSchema } from "@/lib/validations/auth";
+import { sendVerificationEmail } from "@/lib/notifications/verification-email";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -32,6 +33,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       passwordHash,
       role: "customer",
     });
+
+    void sendVerificationEmail(user._id.toString(), user.email, user.name);
 
     const accessToken = await signAccessToken({
       sub: user._id.toString(),

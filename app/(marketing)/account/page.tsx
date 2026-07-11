@@ -4,9 +4,11 @@ import { PackageSearch } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/session";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Booking, type IBooking } from "@/models/Booking";
+import { User } from "@/models/User";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Reveal } from "@/components/motion/reveal";
+import { ResendVerificationBanner } from "@/components/forms/resend-verification-banner";
 
 export const metadata: Metadata = {
   title: "My Account",
@@ -30,7 +32,10 @@ export default async function AccountPage() {
     redirect("/login?next=/account");
   }
 
-  const bookings = await getBookings(user.sub);
+  const [bookings, dbUser] = await Promise.all([
+    getBookings(user.sub),
+    connectToDatabase().then(() => User.findById(user.sub).select("isEmailVerified").lean()),
+  ]);
 
   return (
     <div className="container-boutique py-20">
@@ -39,6 +44,12 @@ export default async function AccountPage() {
         <h1 className="mt-3 font-heading text-4xl">Hello, {user.name.split(" ")[0]}</h1>
         <p className="mt-2 text-muted-foreground">{user.email}</p>
       </Reveal>
+
+      {dbUser && !dbUser.isEmailVerified && (
+        <Reveal delay={0.05} className="mt-6">
+          <ResendVerificationBanner />
+        </Reveal>
+      )}
 
       <Reveal delay={0.1} className="mt-12">
         <h2 className="font-heading text-2xl">My Bookings</h2>

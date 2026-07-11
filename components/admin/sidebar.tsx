@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { ExternalLink } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { navItemsForRole } from "@/lib/config/admin-nav";
 import { siteConfig } from "@/lib/config/site";
@@ -56,10 +57,13 @@ export function AdminSidebar({ role }: { role: UserRole }) {
 
       <div className="border-t border-ivory/10 p-4">
         <Link
-          href="/"
-          className="block text-xs text-ivory/50 hover:text-ivory/80"
+          href="/home"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-xs text-ivory/50 hover:text-ivory/80"
         >
-          &larr; Back to public site
+          <ExternalLink className="h-3 w-3" />
+          View Website
         </Link>
       </div>
     </aside>

@@ -48,7 +48,7 @@ export function Navbar() {
       )}
     >
       <nav className="container-boutique flex h-20 items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 shrink-0">
+        <Link href="/home" className="flex items-center gap-3 shrink-0">
           <Image
             src="/logo-icon.png"
             alt={siteConfig.name}

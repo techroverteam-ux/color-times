@@ -11,6 +11,8 @@ export interface IUser extends Document {
   passwordHash: string;
   role: UserRole;
   isEmailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   isActive: boolean;
   wishlist: Types.ObjectId[];
   addresses: {
@@ -60,6 +62,8 @@ const userSchema = new Schema<IUser>(
       index: true,
     },
     isEmailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationExpires: { type: Date, select: false },
     isActive: { type: Boolean, default: true },
     wishlist: [{ type: Schema.Types.ObjectId, ref: "Product" }],
     addresses: { type: [addressSchema], default: [] },

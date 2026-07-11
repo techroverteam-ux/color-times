@@ -5,7 +5,7 @@ interface NavItem {
 }
 
 const nav: NavItem[] = [
-  { label: "Home", href: "/" },
+  { label: "Home", href: "/home" },
   {
     label: "Collections",
     href: "/collections",

@@ -20,7 +20,7 @@ export default function NotFound() {
           get you back to something beautiful.
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-          <ButtonLink className="rounded-none px-8" href="/">
+          <ButtonLink className="rounded-none px-8" href="/home">
             Back to Home
           </ButtonLink>
           <ButtonLink variant="outline" className="rounded-none px-8" href="/collections">

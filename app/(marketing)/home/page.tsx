@@ -13,7 +13,7 @@ import { getFeaturedCategories, getFeaturedProducts } from "@/lib/catalog/querie
 
 export const metadata: Metadata = {
   title: "Premium Designer Dress Rentals for Every Celebration",
-  alternates: { canonical: "/" },
+  alternates: { canonical: "/home" },
 };
 
 export default async function HomePage() {
