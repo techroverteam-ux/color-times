@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileDown, FileSpreadsheet, Printer, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
@@ -85,7 +85,8 @@ interface ColumnConfig {
   render?: (row: Row) => React.ReactNode;
 }
 
-const CURRENCY = (value: unknown) => `₹${Number(value ?? 0).toLocaleString("en-IN")}`;
+const CURRENCY = (value: unknown) =>
+  `₹${Number(value ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const DATE = (value: unknown) => formatDate(String(value));
 
 const TABLE_CONFIGS: Record<ReportType, ColumnConfig[]> = {
@@ -349,24 +350,22 @@ export function ReportsClient() {
 
         {range === "custom" && (
           <>
-            <Input
-              type="date"
-              className="w-40"
+            <DatePicker
               value={customFrom}
-              onChange={(event) => {
-                setCustomFrom(event.target.value);
+              onChange={(value) => {
+                setCustomFrom(value);
                 setPage(1);
               }}
+              placeholder="From"
             />
             <span className="text-sm text-muted-foreground">to</span>
-            <Input
-              type="date"
-              className="w-40"
+            <DatePicker
               value={customTo}
-              onChange={(event) => {
-                setCustomTo(event.target.value);
+              onChange={(value) => {
+                setCustomTo(value);
                 setPage(1);
               }}
+              placeholder="To"
             />
           </>
         )}

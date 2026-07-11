@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -252,7 +253,7 @@ export function ServiceOrderFormDialog({
                   <FormItem>
                     <FormLabel>Sent Date</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <DatePicker value={field.value} onChange={field.onChange} className="w-full" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -265,7 +266,7 @@ export function ServiceOrderFormDialog({
                   <FormItem>
                     <FormLabel>Expected Return</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <DatePicker value={field.value} onChange={field.onChange} className="w-full" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -78,7 +78,7 @@
   --chart-3: oklch(0.4 0.03 256.8);
   --chart-4: oklch(0.82 0.086 65.3);
   --chart-5: oklch(0.28 0.127 1.4);
-  --radius: 0.25rem;
+  --radius: 0.625rem;
   --gold: oklch(0.75 0.086 65.3);
   --gold-foreground: oklch(0.278 0.03 256.8);
   --burgundy: oklch(0.358 0.127 1.4);
