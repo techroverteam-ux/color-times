@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function RegisterPage() {
   return (
-    <div className="w-full rounded-lg border border-border bg-card p-8 sm:p-10">
+    <div className="w-full rounded-xl border border-border/60 bg-card p-8 shadow-xl shadow-black/[0.04] sm:p-10">
       <div className="text-center">
         <span className="kicker">Join Us</span>
         <h1 className="mt-3 font-heading text-3xl">Create Your Account</h1>

@@ -22,7 +22,7 @@ export default async function VerifyEmailPage({
     : { success: false, message: "Missing verification token." };
 
   return (
-    <div className="w-full rounded-lg border border-border bg-card p-8 text-center sm:p-10">
+    <div className="w-full rounded-xl border border-border/60 bg-card p-8 text-center shadow-xl shadow-black/[0.04] sm:p-10">
       {result.success ? (
         <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
       ) : (
