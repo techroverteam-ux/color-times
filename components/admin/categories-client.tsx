@@ -134,8 +134,51 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="space-y-3 lg:hidden">
+        {categories.map((category) => (
+          <div key={category._id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-secondary">
+              {category.heroImage && (
+                <Image src={category.heroImage} alt={category.name} fill sizes="48px" className="object-cover" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium">{category.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{category.slug}</p>
+              <p className="text-xs text-muted-foreground">
+                Order {category.displayOrder}
+                {category.isFeatured && " · Featured"}
+              </p>
+            </div>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon-sm" onClick={() => openEditDialog(category)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-destructive"
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  if (window.confirm(`Delete "${category.name}"? This cannot be undone.`)) {
+                    deleteMutation.mutate(category._id);
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        {categories.length === 0 && (
+          <p className="py-10 text-center text-muted-foreground">
+            No categories yet. Create your first one.
+          </p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+        <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Image</th>

@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/models/User";
 import { Booking } from "@/models/Booking";
+import "@/models/Product";
 import { InvoiceForm } from "@/components/admin/invoice-form";
 
 export const metadata: Metadata = { title: "New Invoice" };

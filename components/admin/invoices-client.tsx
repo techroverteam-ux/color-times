@@ -350,8 +350,87 @@ export function InvoicesClient({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="space-y-3 lg:hidden">
+        {invoices.map((invoice) => (
+          <div key={invoice._id} className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <Link href={`/admin/invoices/${invoice._id}`} className="font-medium hover:text-accent">
+                {invoice.invoiceNumber}
+              </Link>
+              <InvoiceStatusBadge status={invoice.status} />
+            </div>
+            <p className="mt-2 text-sm">{invoice.customer?.name ?? "—"}</p>
+            <p className="text-xs text-muted-foreground">{invoice.customer?.email}</p>
+            {invoice.booking && (
+              <p className="mt-1 text-xs text-muted-foreground">Booking {invoice.booking.bookingNumber}</p>
+            )}
+            <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Total</p>
+                <p>{formatCurrency(invoice.total)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Paid</p>
+                <p className="text-emerald-700">{formatCurrency(invoice.amountPaid)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Due</p>
+                <p className={invoice.amountDue > 0 ? "text-red-700" : undefined}>
+                  {formatCurrency(invoice.amountDue)}
+                </p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">Due {formatDate(invoice.dueDate)}</p>
+            <div className="mt-3 flex justify-end">
+              {view === "trash" ? (
+                <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate(invoice._id)}>
+                  Restore
+                </Button>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                    Actions <MoreHorizontal className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => router.push(`/admin/invoices/${invoice._id}`)}>
+                      View
+                    </DropdownMenuItem>
+                    {invoice.status === "draft" && (
+                      <DropdownMenuItem onClick={() => sendMutation.mutate(invoice._id)}>
+                        Send
+                      </DropdownMenuItem>
+                    )}
+                    {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+                      <DropdownMenuItem
+                        onClick={() => setConfirmState({ type: "cancel", id: invoice._id })}
+                      >
+                        Cancel
+                      </DropdownMenuItem>
+                    )}
+                    {(invoice.status === "draft" || invoice.status === "cancelled") && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={() => setConfirmState({ type: "delete", id: invoice._id })}
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </div>
+        ))}
+        {invoices.length === 0 && (
+          <p className="py-10 text-center text-muted-foreground">No invoices found.</p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+        <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3">

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Booking } from "@/models/Booking";
 import { Product } from "@/models/Product";
+import "@/models/User";
 import { bookingCreateSchema } from "@/lib/validations/booking";
 import { generateBookingNumber } from "@/lib/admin/booking-number";
 import { findBookingConflicts } from "@/lib/admin/booking-availability";

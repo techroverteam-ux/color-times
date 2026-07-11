@@ -65,8 +65,58 @@ export function WhatsAppTemplatesClient({
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="space-y-3 lg:hidden">
+        {templates.map((template) => (
+          <div key={template._id} className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-medium">{template.name}</p>
+              <Badge
+                className={
+                  template.isActive
+                    ? "rounded-full border-none bg-emerald-100 font-medium text-emerald-800"
+                    : "rounded-full border-none bg-secondary font-medium text-foreground"
+                }
+              >
+                {template.isActive ? "Active" : "Inactive"}
+              </Badge>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {TRIGGER_EVENT_LABELS[template.triggerEvent]}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Brevo Template ID {template.brevoTemplateId}
+            </p>
+            <div className="mt-3 flex justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setEditingTemplate(template);
+                  setFormOpen(true);
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive"
+                onClick={() => setDeleteId(template._id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        {templates.length === 0 && (
+          <p className="py-10 text-center text-muted-foreground">
+            No templates yet. Create one to start sending WhatsApp updates.
+          </p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+        <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Name</th>

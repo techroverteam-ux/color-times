@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Invoice } from "@/models/Invoice";
 import "@/models/Booking";
+import "@/models/User";
 import { invoiceSchema, computeInvoiceTotals } from "@/lib/validations/invoice";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";

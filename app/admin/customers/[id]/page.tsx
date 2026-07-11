@@ -5,6 +5,7 @@ import { ArrowLeft, PackageSearch } from "lucide-react";
 import { connectToDatabase } from "@/lib/db/connect";
 import { User } from "@/models/User";
 import { Booking, type BookingStatus } from "@/models/Booking";
+import "@/models/Product";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { CustomerDetailClient } from "@/components/admin/customer-detail-client";
 import { EmptyState } from "@/components/ui/empty-state";

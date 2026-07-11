@@ -189,8 +189,61 @@ export function BookingsClient({
         <BookingCalendar />
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border border-border bg-card">
-            <table className="w-full text-sm">
+          <div className="space-y-3 lg:hidden">
+            {bookings.map((booking) => (
+              <div key={booking._id} className="rounded-lg border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <Link
+                    href={`/admin/bookings/${booking._id}`}
+                    className="font-medium hover:text-accent hover:underline"
+                  >
+                    {booking.bookingNumber}
+                  </Link>
+                  <BookingStatusBadge status={booking.status} />
+                </div>
+                <p className="mt-2 text-sm">{booking.customer?.name ?? "—"}</p>
+                <p className="text-xs text-muted-foreground">{booking.customer?.email}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{booking.product?.name ?? "—"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatDate(booking.rentalStartDate)} &rarr; {formatDate(booking.rentalEndDate)}
+                </p>
+                <p className="mt-2 text-sm font-medium">
+                  &#8377;{booking.totalAmount.toLocaleString("en-IN")}
+                </p>
+                <Select
+                  value={booking.status}
+                  onValueChange={(value) => {
+                    if (!value || value === booking.status) return;
+                    if (value === "returned") {
+                      setReturnDialogBookingId(booking._id);
+                      return;
+                    }
+                    updateStatusMutation.mutate({
+                      id: booking._id,
+                      status: value as BookingStatus,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="mt-3 w-full" size="sm">
+                    <SelectValue>{(value: string) => value.replace("_", " ")}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option.replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
+            {bookings.length === 0 && (
+              <p className="py-10 text-center text-muted-foreground">No bookings found.</p>
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+            <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
               <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Booking #</th>

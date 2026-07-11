@@ -1,5 +1,7 @@
 import { connectToDatabase } from "@/lib/db/connect";
 import { Booking } from "@/models/Booking";
+import "@/models/User";
+import "@/models/Product";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { apiSuccess, apiError } from "@/lib/api/response";

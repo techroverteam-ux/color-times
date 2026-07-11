@@ -496,8 +496,44 @@ export function ReportsClient() {
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="space-y-3 lg:hidden">
+        {isLoading && <p className="py-10 text-center text-muted-foreground">Loading...</p>}
+        {!isLoading &&
+          (data?.items ?? []).map((row, index) => {
+            const [titleColumn, ...restColumns] = columns;
+            return (
+              <div key={index} className="rounded-lg border border-border bg-card p-4">
+                <p className="font-medium">
+                  {titleColumn.render
+                    ? titleColumn.render(row)
+                    : titleColumn.format
+                      ? titleColumn.format(row)
+                      : String(row[titleColumn.key] ?? "—")}
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                  {restColumns.map((column) => (
+                    <div key={column.key}>
+                      <p className="text-xs text-muted-foreground">{column.label}</p>
+                      <p>
+                        {column.render
+                          ? column.render(row)
+                          : column.format
+                            ? column.format(row)
+                            : String(row[column.key] ?? "—")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        {!isLoading && data?.items.length === 0 && (
+          <p className="py-10 text-center text-muted-foreground">No records found.</p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+        <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               {columns.map((column) => (

@@ -5,6 +5,7 @@ import { Booking } from "@/models/Booking";
 import { Invoice } from "@/models/Invoice";
 import { User } from "@/models/User";
 import { ServiceOrder } from "@/models/ServiceOrder";
+import "@/models/Category";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import {

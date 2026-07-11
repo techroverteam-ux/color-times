@@ -84,8 +84,29 @@ export function CustomersClient({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="space-y-3 lg:hidden">
+        {customers.map((customer) => (
+          <div key={customer._id} className="rounded-lg border border-border bg-card p-4">
+            <p className="font-medium">{customer.name}</p>
+            <p className="text-sm text-muted-foreground">{customer.email}</p>
+            <p className="text-sm text-muted-foreground">{customer.phone ?? "—"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Joined {formatDate(customer.createdAt)}
+            </p>
+            <div className="mt-3 flex justify-end">
+              <ButtonLink variant="outline" size="sm" href={`/admin/customers/${customer._id}`}>
+                View
+              </ButtonLink>
+            </div>
+          </div>
+        ))}
+        {customers.length === 0 && (
+          <p className="py-10 text-center text-muted-foreground">No customers found.</p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+        <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Name</th>

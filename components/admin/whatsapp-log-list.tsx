@@ -99,8 +99,40 @@ export function WhatsAppLogList() {
         </Select>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="space-y-3 lg:hidden">
+        {logs.map((log) => (
+          <div key={log._id} className="rounded-lg border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium">{log.recipientName}</p>
+                <p className="text-xs text-muted-foreground">{log.recipientPhone ?? "—"}</p>
+              </div>
+              <Badge
+                className={cn(
+                  "rounded-full border-none font-medium",
+                  log.status === "sent"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-red-100 text-red-800"
+                )}
+              >
+                {log.status === "sent" ? "Sent" : "Failed"}
+              </Badge>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">{log.templateName}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{log.message}</p>
+            {log.status === "failed" && log.errorMessage && (
+              <p className="mt-1 text-xs text-destructive">{log.errorMessage}</p>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">{formatDateTime(log.createdAt)}</p>
+          </div>
+        ))}
+        {logs.length === 0 && (
+          <p className="py-10 text-center text-muted-foreground">No WhatsApp messages sent yet.</p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+        <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Recipient</th>

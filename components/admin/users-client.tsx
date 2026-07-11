@@ -253,8 +253,76 @@ export function UsersClient({
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-        <table className="w-full text-sm">
+      <div className="space-y-3 lg:hidden">
+        {users.map((user) => {
+          const isSelf = user._id === currentUserId;
+          return (
+            <div key={user._id} className="rounded-lg border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium">
+                  {user.name}
+                  {isSelf && <span className="ml-2 text-xs text-muted-foreground">(You)</span>}
+                </p>
+                <Badge variant={user.isActive ? "default" : "secondary"} className="rounded-full">
+                  {user.isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+              <p className="text-sm text-muted-foreground">{user.phone || "—"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {ROLE_LABELS[user.role] ?? user.role} &middot; Joined {formatDate(user.createdAt)}
+              </p>
+              <div className="mt-3 flex justify-end gap-1">
+                <Button variant="ghost" size="icon-sm" onClick={() => openEditDialog(user)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={resetPasswordMutation.isPending && resettingId === user._id}
+                  onClick={() => {
+                    setResettingId(user._id);
+                    resetPasswordMutation.mutate(user._id);
+                  }}
+                  title="Reset password"
+                >
+                  {resetPasswordMutation.isPending && resettingId === user._id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <KeyRound className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                {!isSelf && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setDeactivating(user)}
+                    title={user.isActive ? "Deactivate" : "Reactivate"}
+                  >
+                    <ShieldOff className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {!isSelf && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="text-destructive"
+                    onClick={() => setDeleting(user)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {users.length === 0 && (
+          <p className="py-10 text-center text-muted-foreground">No team members yet.</p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+        <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Name</th>

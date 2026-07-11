@@ -412,6 +412,64 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
     window.print();
   }
 
+  const cardGrid = (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {products.map((product) => (
+        <div key={product._id} className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="relative aspect-square bg-secondary">
+            {product.images[0] && (
+              <Image
+                src={product.images[0]}
+                alt={product.name}
+                fill
+                sizes="(min-width: 1024px) 25vw, 50vw"
+                className="object-cover"
+              />
+            )}
+            <button
+              type="button"
+              className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-background/80"
+              onClick={() =>
+                favoriteMutation.mutate({ id: product._id, isFavorited: !product.isFavorited })
+              }
+            >
+              <Star
+                className={cn("h-3.5 w-3.5", product.isFavorited && "fill-accent text-accent")}
+              />
+            </button>
+          </div>
+          <div className="p-3">
+            <p className="truncate text-sm font-medium">{product.name}</p>
+            <p className="text-xs text-muted-foreground">{product.sku}</p>
+            <p className="mt-1 text-sm text-accent">
+              &#8377;{product.rentalPricePerDay.toLocaleString("en-IN")}
+            </p>
+            <div className="mt-2 flex gap-1">
+              <ButtonLink
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                href={`/admin/products/${product._id}`}
+              >
+                Edit
+              </ButtonLink>
+              <Checkbox
+                checked={selectedIds.has(product._id)}
+                onCheckedChange={() => toggleSelectOne(product._id)}
+                className="ml-1 self-center"
+              />
+            </div>
+          </div>
+        </div>
+      ))}
+      {products.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">
+          {isFetching ? "Loading..." : "No products found."}
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -541,9 +599,11 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
         onClear={() => setSelectedIds(new Set())}
       />
 
+      <div className="lg:hidden">{cardGrid}</div>
+
       {view === "table" ? (
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
-          <table className="w-full text-sm">
+        <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+          <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
             <thead className="sticky top-0 z-10 border-b border-border bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground backdrop-blur">
               <tr>
                 <th className="w-10 px-4 py-3">
@@ -794,61 +854,7 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
           </table>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <div key={product._id} className="overflow-hidden rounded-lg border border-border bg-card">
-              <div className="relative aspect-square bg-secondary">
-                {product.images[0] && (
-                  <Image
-                    src={product.images[0]}
-                    alt={product.name}
-                    fill
-                    sizes="(min-width: 1024px) 25vw, 50vw"
-                    className="object-cover"
-                  />
-                )}
-                <button
-                  type="button"
-                  className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-background/80"
-                  onClick={() =>
-                    favoriteMutation.mutate({ id: product._id, isFavorited: !product.isFavorited })
-                  }
-                >
-                  <Star
-                    className={cn("h-3.5 w-3.5", product.isFavorited && "fill-accent text-accent")}
-                  />
-                </button>
-              </div>
-              <div className="p-3">
-                <p className="truncate text-sm font-medium">{product.name}</p>
-                <p className="text-xs text-muted-foreground">{product.sku}</p>
-                <p className="mt-1 text-sm text-accent">
-                  &#8377;{product.rentalPricePerDay.toLocaleString("en-IN")}
-                </p>
-                <div className="mt-2 flex gap-1">
-                  <ButtonLink
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    href={`/admin/products/${product._id}`}
-                  >
-                    Edit
-                  </ButtonLink>
-                  <Checkbox
-                    checked={selectedIds.has(product._id)}
-                    onCheckedChange={() => toggleSelectOne(product._id)}
-                    className="ml-1 self-center"
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-          {products.length === 0 && (
-            <p className="col-span-full py-10 text-center text-muted-foreground">
-              {isFetching ? "Loading..." : "No products found."}
-            </p>
-          )}
-        </div>
+        <div className="hidden lg:block">{cardGrid}</div>
       )}
 
       {pagination.totalPages > 1 && (

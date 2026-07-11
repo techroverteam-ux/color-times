@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Booking } from "@/models/Booking";
+import "@/models/User";
+import "@/models/Product";
 import { BookingsClient } from "@/components/admin/bookings-client";
 
 export const metadata: Metadata = { title: "Bookings" };

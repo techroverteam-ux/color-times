@@ -302,8 +302,22 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Invoic
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-border bg-card">
-            <table className="w-full text-sm">
+          <div className="space-y-3 lg:hidden">
+            {invoice.lineItems.map((item, index) => (
+              <div key={index} className="rounded-lg border border-border bg-card p-4">
+                <p className="text-sm font-medium">{item.description}</p>
+                <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+                  <span>
+                    {item.quantity} &times; {formatCurrency(item.unitPrice)}
+                  </span>
+                  <span className="font-medium text-foreground">{formatCurrency(item.amount)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+            <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
               <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">Description</th>
@@ -330,34 +344,52 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Invoic
             {invoice.payments.length === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">No payments recorded yet.</p>
             ) : (
-              <div className="mt-3 overflow-x-auto rounded-lg border border-border bg-card">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Method</th>
-                      <th className="px-4 py-3">Amount</th>
-                      <th className="px-4 py-3">Reference</th>
-                      <th className="px-4 py-3">Recorded By</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoice.payments.map((payment) => (
-                      <tr key={payment._id} className="border-b border-border last:border-0">
-                        <td className="px-4 py-3">{formatDate(payment.paidAt)}</td>
-                        <td className="px-4 py-3">{METHOD_LABELS[payment.method]}</td>
-                        <td className="px-4 py-3">{formatCurrency(payment.amount)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {payment.reference ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {payment.recordedByName}
-                        </td>
+              <>
+                <div className="mt-3 space-y-3 lg:hidden">
+                  {invoice.payments.map((payment) => (
+                    <div key={payment._id} className="rounded-lg border border-border bg-card p-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{formatCurrency(payment.amount)}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(payment.paidAt)}</p>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {METHOD_LABELS[payment.method]}
+                        {payment.reference && ` · ${payment.reference}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">By {payment.recordedByName}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
+                  <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
+                    <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Method</th>
+                        <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3">Reference</th>
+                        <th className="px-4 py-3">Recorded By</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {invoice.payments.map((payment) => (
+                        <tr key={payment._id} className="border-b border-border last:border-0">
+                          <td className="px-4 py-3">{formatDate(payment.paidAt)}</td>
+                          <td className="px-4 py-3">{METHOD_LABELS[payment.method]}</td>
+                          <td className="px-4 py-3">{formatCurrency(payment.amount)}</td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {payment.reference ?? "—"}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {payment.recordedByName}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
 
