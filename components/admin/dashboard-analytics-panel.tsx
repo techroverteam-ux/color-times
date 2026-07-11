@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
@@ -30,27 +31,18 @@ async function fetchAnalytics(params: {
   return json.data;
 }
 
-export function DashboardAnalyticsPanel({
-  initialAnalytics,
-}: {
-  initialAnalytics: DashboardAnalyticsData;
-}) {
+export function DashboardAnalyticsPanel() {
   const [preset, setPreset] = useState<DateRangePreset>("all");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
 
-  const isDefaultQuery = preset === "all";
-
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["admin", "dashboard-analytics", { preset, customFrom, customTo }],
     queryFn: () => fetchAnalytics({ preset, from: customFrom, to: customTo }),
-    initialData: isDefaultQuery
-      ? { analytics: initialAnalytics, rangeLabel: DATE_RANGE_LABELS.all }
-      : undefined,
     enabled: preset !== "custom" || Boolean(customFrom && customTo),
   });
 
-  const analytics = data?.analytics ?? initialAnalytics;
+  const analytics = data?.analytics;
 
   return (
     <div className="space-y-6">
@@ -81,13 +73,20 @@ export function DashboardAnalyticsPanel({
         )}
       </div>
 
-      <DashboardAnalytics
-        bookingStatusBreakdown={analytics.bookingStatusBreakdown}
-        invoiceStatusBreakdown={analytics.invoiceStatusBreakdown}
-        categoryRevenue={analytics.categoryRevenue}
-        topProducts={analytics.topProducts}
-        monthlyTrend={analytics.monthlyTrend}
-      />
+      {analytics ? (
+        <DashboardAnalytics
+          bookingStatusBreakdown={analytics.bookingStatusBreakdown}
+          invoiceStatusBreakdown={analytics.invoiceStatusBreakdown}
+          categoryRevenue={analytics.categoryRevenue}
+          topProducts={analytics.topProducts}
+          monthlyTrend={analytics.monthlyTrend}
+        />
+      ) : (
+        <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-foreground">
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isLoading ? "Loading analytics..." : "Select a date range to load analytics."}
+        </div>
+      )}
     </div>
   );
 }

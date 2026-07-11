@@ -48,7 +48,6 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
     await fetch("/api/auth/logout", { method: "POST" });
     await queryClient.invalidateQueries({ queryKey: ["session"] });
     router.push("/login");
-    router.refresh();
   }
 
   return (
@@ -68,18 +67,14 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
-            <div className="flex h-16 items-center gap-3 border-b border-border px-6">
+            <div className="flex h-16 items-center justify-center border-b border-border px-6">
               <Image
                 src="/logo-icon.png"
                 alt={siteConfig.name}
-                width={32}
-                height={32}
-                className="h-8 w-8 object-contain"
+                width={40}
+                height={40}
+                className="h-10 w-10 object-contain"
               />
-              <div className="leading-tight">
-                <p className="font-heading text-base">{siteConfig.shortName}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Admin</p>
-              </div>
             </div>
             <div className="flex-1 overflow-y-auto">
               <AdminNavLinks role={user.role} tone="light" onNavigate={() => setNavOpen(false)} />

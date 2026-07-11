@@ -14,22 +14,22 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       />
 
       <div className="relative flex w-full flex-col items-center">
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-2">
           <Image
             src="/logo.png"
             alt={siteConfig.name}
-            width={112}
-            height={112}
+            width={64}
+            height={64}
             priority
-            className="h-24 w-24 object-contain sm:h-28 sm:w-28"
+            className="h-14 w-14 object-contain sm:h-16 sm:w-16"
           />
-          <span className="font-heading text-2xl tracking-wide">{siteConfig.name}</span>
+          <span className="font-heading text-xl tracking-wide">{siteConfig.name}</span>
           <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
             ERP Portal
           </span>
         </div>
 
-        <div className="mt-8 w-full max-w-md">{children}</div>
+        <div className="mt-6 w-full max-w-md">{children}</div>
       </div>
     </div>
   );

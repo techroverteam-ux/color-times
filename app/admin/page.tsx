@@ -8,7 +8,7 @@ import {
   Receipt,
   RotateCcw,
 } from "lucide-react";
-import { getDashboardStats, getDashboardAnalytics } from "@/lib/admin/dashboard-stats";
+import { getDashboardStats } from "@/lib/admin/dashboard-stats";
 import { StatCard } from "@/components/admin/stat-card";
 import { RevenueChart } from "@/components/admin/revenue-chart";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { BookingStatus } from "@/models/Booking";
 
 export default async function AdminDashboardPage() {
-  const [stats, analytics] = await Promise.all([getDashboardStats(), getDashboardAnalytics()]);
+  const stats = await getDashboardStats();
 
   return (
     <Tabs defaultValue="overview" className="space-y-6">
@@ -106,7 +106,7 @@ export default async function AdminDashboardPage() {
       </TabsContent>
 
       <TabsContent value="analytics">
-        <DashboardAnalyticsPanel initialAnalytics={analytics} />
+        <DashboardAnalyticsPanel />
       </TabsContent>
     </Tabs>
   );

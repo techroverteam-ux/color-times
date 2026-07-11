@@ -45,7 +45,6 @@ export function RegisterForm() {
       await queryClient.invalidateQueries({ queryKey: ["session"] });
       toast.success(`Welcome to Color Times, ${json.data.name}!`);
       router.push("/account");
-      router.refresh();
     } catch {
       toast.error("Network error. Please check your connection and try again.");
     }

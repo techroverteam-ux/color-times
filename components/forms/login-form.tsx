@@ -45,8 +45,8 @@ export function LoginForm() {
 
       await queryClient.invalidateQueries({ queryKey: ["session"] });
       toast.success(`Welcome back, ${json.data.name}!`);
-      router.push(searchParams.get("next") ?? "/account");
-      router.refresh();
+      const fallback = json.data.role === "customer" ? "/account" : "/admin";
+      router.push(searchParams.get("next") ?? fallback);
     } catch {
       toast.error("Network error. Please check your connection and try again.");
     }
