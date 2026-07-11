@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Moon, Settings, Sun, User as UserIcon } from "lucide-react";
+import { ExternalLink, LogOut, Menu, Moon, Settings, Sun, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +15,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { AdminNavLinks } from "@/components/admin/nav-links";
 import { adminNavItems } from "@/lib/config/admin-nav";
+import { siteConfig } from "@/lib/config/site";
 import { useAdminTheme } from "@/components/admin/theme-provider";
 import type { SessionUser } from "@/types/auth";
 
@@ -31,6 +41,7 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
   const queryClient = useQueryClient();
   const title = useAdminPageTitle();
   const { theme, toggleTheme } = useAdminTheme();
+  const [navOpen, setNavOpen] = useState(false);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -41,7 +52,52 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
-      <h1 className="font-heading text-lg">{title}</h1>
+      <div className="flex items-center gap-1">
+        <Sheet open={navOpen} onOpenChange={setNavOpen}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Open menu"
+            className="-ml-2 lg:hidden"
+            onClick={() => setNavOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <SheetContent side="left" className="w-72 p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Navigation</SheetTitle>
+            </SheetHeader>
+            <div className="flex h-16 items-center gap-3 border-b border-border px-6">
+              <Image
+                src="/logo-icon.png"
+                alt={siteConfig.name}
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+              />
+              <div className="leading-tight">
+                <p className="font-heading text-base">{siteConfig.shortName}</p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Admin</p>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <AdminNavLinks role={user.role} tone="light" onNavigate={() => setNavOpen(false)} />
+            </div>
+            <div className="border-t border-border p-4">
+              <Link
+                href="/home"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <ExternalLink className="h-3 w-3" />
+                View Website
+              </Link>
+            </div>
+          </SheetContent>
+        </Sheet>
+        <h1 className="font-heading text-lg">{title}</h1>
+      </div>
 
       <div className="flex items-center gap-2">
         <Button

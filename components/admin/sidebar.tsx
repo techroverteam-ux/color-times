@@ -3,21 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ExternalLink } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { navItemsForRole } from "@/lib/config/admin-nav";
 import { siteConfig } from "@/lib/config/site";
-import { cn } from "@/lib/utils";
+import { AdminNavLinks } from "@/components/admin/nav-links";
 import type { UserRole } from "@/models/User";
 
-function isActive(pathname: string, href: string): boolean {
-  if (href === "/admin") return pathname === "/admin";
-  return pathname.startsWith(href);
-}
-
 export function AdminSidebar({ role }: { role: UserRole }) {
-  const pathname = usePathname();
-  const navItems = navItemsForRole(role);
-
   return (
     <aside className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-r lg:border-ivory/10 lg:bg-charcoal lg:text-ivory">
       <div className="flex h-16 items-center gap-3 border-b border-ivory/10 px-6">
@@ -34,26 +24,9 @@ export function AdminSidebar({ role }: { role: UserRole }) {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => {
-          const active = isActive(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors",
-                active
-                  ? "bg-ivory/10 text-gold"
-                  : "text-ivory/70 hover:bg-ivory/5 hover:text-ivory"
-              )}
-            >
-              <item.icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="flex-1 overflow-y-auto">
+        <AdminNavLinks role={role} tone="dark" />
+      </div>
 
       <div className="border-t border-ivory/10 p-4">
         <Link

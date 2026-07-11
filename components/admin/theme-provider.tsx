@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 
@@ -42,6 +42,16 @@ export function AdminThemeProvider({ children }: { children: React.ReactNode }) 
   function toggleTheme() {
     setStoredTheme(theme === "light" ? "dark" : "light");
   }
+
+  // Base UI portals (dropdowns, sheets, dialogs) render into document.body,
+  // outside the wrapper div below, so the "dark" class must also live on
+  // <html> for portaled content to pick up the right CSS variables.
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    return () => {
+      document.documentElement.classList.remove("dark");
+    };
+  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
