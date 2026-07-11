@@ -22,6 +22,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   await connectToDatabase();
 
   const searchParams = request.nextUrl.searchParams;
+  const all = searchParams.get("all") === "true";
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20")));
   const search = searchParams.get("search")?.trim();
@@ -56,19 +57,18 @@ export async function GET(request: NextRequest): Promise<Response> {
     [SORTABLE_FIELDS.has(sortField) ? sortField : "createdAt"]: sortDir,
   };
 
+  const baseQuery = Product.find(filter).populate("category", "name slug").sort(sort);
+
   const [products, total] = await Promise.all([
-    Product.find(filter)
-      .populate("category", "name slug")
-      .sort(sort)
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .lean(),
+    all ? baseQuery.lean() : baseQuery.skip((page - 1) * pageSize).limit(pageSize).lean(),
     Product.countDocuments(filter),
   ]);
 
   return apiSuccess({
     products,
-    pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    pagination: all
+      ? { page: 1, pageSize: total || 1, total, totalPages: 1 }
+      : { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
   });
 }
 

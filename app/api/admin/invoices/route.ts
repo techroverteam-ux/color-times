@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Invoice } from "@/models/Invoice";
+import "@/models/Booking";
 import { invoiceSchema, computeInvoiceTotals } from "@/lib/validations/invoice";
 import { generateInvoiceNumber } from "@/lib/admin/invoice-number";
 import { requireApiRole } from "@/lib/api/require-role";
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   await connectToDatabase();
 
   const searchParams = request.nextUrl.searchParams;
+  const all = searchParams.get("all") === "true";
   const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") ?? "20")));
   const status = searchParams.get("status");
@@ -36,20 +38,21 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const sortField = SORTABLE_FIELDS.has(sortBy) ? sortBy : "createdAt";
 
+  const baseQuery = Invoice.find(filter)
+    .populate("customer", "name email phone")
+    .populate("booking", "bookingNumber")
+    .sort({ [sortField]: sortDir });
+
   const [invoices, total] = await Promise.all([
-    Invoice.find(filter)
-      .populate("customer", "name email phone")
-      .populate("booking", "bookingNumber")
-      .sort({ [sortField]: sortDir })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .lean(),
+    all ? baseQuery.lean() : baseQuery.skip((page - 1) * pageSize).limit(pageSize).lean(),
     Invoice.countDocuments(filter),
   ]);
 
   return apiSuccess({
     invoices,
-    pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    pagination: all
+      ? { page: 1, pageSize: total || 1, total, totalPages: 1 }
+      : { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
   });
 }
 

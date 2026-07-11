@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   Printer,
   Search,
+  Table2,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
-import { downloadCsv, downloadPdf } from "@/lib/admin/export";
+import { downloadCsv, downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { formatDate } from "@/lib/utils";
 import type { InvoiceStatus } from "@/models/Invoice";
 
@@ -93,6 +94,7 @@ async function fetchInvoices(params: {
   search: string;
   sortBy: string;
   sortDir: string;
+  all?: boolean;
 }): Promise<{ invoices: InvoiceRow[]; pagination: Pagination }> {
   const searchParams = new URLSearchParams({
     page: String(params.page),
@@ -102,6 +104,7 @@ async function fetchInvoices(params: {
   });
   if (params.status !== "all") searchParams.set("status", params.status);
   if (params.search) searchParams.set("search", params.search);
+  if (params.all) searchParams.set("all", "true");
 
   const res = await fetch(`/api/admin/invoices?${searchParams.toString()}`);
   const json = await res.json();
@@ -127,6 +130,16 @@ export function InvoicesClient({
   const [confirmState, setConfirmState] = useState<{ type: "cancel" | "delete"; id: string } | null>(
     null
   );
+  const [isExporting, setIsExporting] = useState(false);
+
+  async function withExportGuard(action: () => Promise<void>): Promise<void> {
+    setIsExporting(true);
+    try {
+      await action();
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   const isDefaultQuery =
     page === 1 && status === "all" && view === "active" && search === "" && sortBy === "createdAt" && sortDir === "desc";
@@ -213,15 +226,16 @@ export function InvoicesClient({
     }
   }
 
-  function exportRows(): { headers: string[]; rows: (string | number)[][] } {
+  async function exportRows(): Promise<{ headers: string[]; rows: (string | number)[][] }> {
+    const full = await fetchInvoices({ page: 1, status, view, search, sortBy, sortDir, all: true });
     const headers = ["Invoice #", "Customer", "Total", "Paid", "Due", "Status", "Due Date"];
-    const rows = invoices.map((invoice) => [
+    const rows = full.invoices.map((invoice) => [
       invoice.invoiceNumber,
       invoice.customer?.name ?? "—",
       invoice.total,
       invoice.amountPaid,
       invoice.amountDue,
-      invoice.status,
+      STATUS_FILTERS.find((option) => option.value === invoice.status)?.label ?? invoice.status,
       formatDate(invoice.dueDate),
     ]);
     return { headers, rows };
@@ -294,20 +308,39 @@ export function InvoicesClient({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              const { headers, rows } = exportRows();
-              downloadCsv("invoices", headers, rows);
-            }}
+            disabled={isExporting}
+            onClick={() =>
+              withExportGuard(async () => {
+                const { headers, rows } = await exportRows();
+                downloadCsv("invoices", headers, rows);
+              })
+            }
           >
             <FileSpreadsheet className="h-4 w-4" /> CSV
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              const { headers, rows } = exportRows();
-              downloadPdf("invoices", "Invoices", headers, rows);
-            }}
+            disabled={isExporting}
+            onClick={() =>
+              withExportGuard(async () => {
+                const { headers, rows } = await exportRows();
+                await downloadExcel("invoices", "Invoices", headers, rows);
+              })
+            }
+          >
+            <Table2 className="h-4 w-4" /> Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isExporting}
+            onClick={() =>
+              withExportGuard(async () => {
+                const { headers, rows } = await exportRows();
+                downloadPdf("invoices", "Invoices", headers, rows);
+              })
+            }
           >
             <FileDown className="h-4 w-4" /> PDF
           </Button>

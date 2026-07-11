@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { ServiceOrder } from "@/models/ServiceOrder";
+import "@/models/Booking";
 import { serviceOrderUpdateSchema } from "@/lib/validations/service-order";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";

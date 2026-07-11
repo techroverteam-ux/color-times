@@ -20,6 +20,7 @@ import {
   Search,
   Settings2,
   Star,
+  Table2,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ProductQuickAddDialog } from "@/components/admin/product-quick-add-dialog";
 import { ProductImportDialog } from "@/components/admin/product-import-dialog";
 import { ProductDetailDrawer } from "@/components/admin/product-detail-drawer";
-import { downloadCsv, downloadPdf } from "@/lib/admin/export";
+import { downloadCsv, downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { cn } from "@/lib/utils";
 
 interface ProductRow {
@@ -93,6 +94,7 @@ async function fetchProducts(params: {
   status: string;
   sortBy: string;
   sortDir: string;
+  all?: boolean;
 }): Promise<ProductsResponse> {
   const searchParams = new URLSearchParams({
     page: String(params.page),
@@ -102,6 +104,7 @@ async function fetchProducts(params: {
   });
   if (params.search) searchParams.set("search", params.search);
   if (params.category && params.category !== "all") searchParams.set("category", params.category);
+  if (params.all) searchParams.set("all", "true");
 
   const res = await fetch(`/api/admin/products?${searchParams.toString()}`);
   const json = await res.json();
@@ -153,6 +156,7 @@ export function ProductsClient({
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [priceDraft, setPriceDraft] = useState("");
   const [viewingId, setViewingId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [confirmState, setConfirmState] = useState<{
     ids: string[];
     action: "delete" | "permanent-delete" | "archive" | "restore";
@@ -360,27 +364,48 @@ export function ProductsClient({
     }
   }
 
-  const exportRows = useMemo(
-    () =>
-      products.map((product) => [
-        product.name,
-        product.sku,
-        product.category?.name ?? "",
-        product.rentalPricePerDay,
-        totalStock(product.variants),
-        product.isActive ? "Active" : "Inactive",
-      ]),
-    [products]
-  );
+const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"];
 
-  const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"];
+  async function fetchExportRows(): Promise<(string | number)[][]> {
+    const full = await fetchProducts({ page: 1, search, category, status, sortBy, sortDir, all: true });
+    return full.products.map((product) => [
+      product.name,
+      product.sku,
+      product.category?.name ?? "",
+      product.rentalPricePerDay,
+      totalStock(product.variants),
+      product.isActive ? "Active" : "Inactive",
+    ]);
+  }
+
+  async function withExportGuard(action: () => Promise<void>): Promise<void> {
+    setIsExporting(true);
+    try {
+      await action();
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   function handleExportCsv() {
-    downloadCsv("products", exportHeaders, exportRows);
+    void withExportGuard(async () => {
+      const rows = await fetchExportRows();
+      downloadCsv("products", exportHeaders, rows);
+    });
+  }
+
+  function handleExportExcel() {
+    void withExportGuard(async () => {
+      const rows = await fetchExportRows();
+      await downloadExcel("products", "Product Inventory", exportHeaders, rows);
+    });
   }
 
   function handleExportPdf() {
-    downloadPdf("products", "Product Inventory", exportHeaders, exportRows);
+    void withExportGuard(async () => {
+      const rows = await fetchExportRows();
+      downloadPdf("products", "Product Inventory", exportHeaders, rows);
+    });
   }
 
   function handlePrint() {
@@ -490,11 +515,15 @@ export function ProductsClient({
               onChange={(key, value) => setColumnVisibility((prev) => ({ ...prev, [key]: value }))}
             />
           )}
-          <Button variant="outline" size="sm" onClick={handleExportCsv}>
+          <Button variant="outline" size="sm" disabled={isExporting} onClick={handleExportCsv}>
             <FileSpreadsheet className="h-4 w-4" />
             CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportPdf}>
+          <Button variant="outline" size="sm" disabled={isExporting} onClick={handleExportExcel}>
+            <Table2 className="h-4 w-4" />
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" disabled={isExporting} onClick={handleExportPdf}>
             <FileDown className="h-4 w-4" />
             PDF
           </Button>

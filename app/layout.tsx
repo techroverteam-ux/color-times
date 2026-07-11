@@ -118,7 +118,7 @@ export default function RootLayout({
         <Providers>
           <TooltipProvider delay={150}>
             {children}
-            <Toaster position="top-center" richColors closeButton />
+            <Toaster position="bottom-center" richColors closeButton />
           </TooltipProvider>
         </Providers>
       </body>

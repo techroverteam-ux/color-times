@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Invoice } from "@/models/Invoice";
+import "@/models/Booking";
 import { InvoiceDetailClient } from "@/components/admin/invoice-detail-client";
 
 export const metadata: Metadata = { title: "Invoice Detail" };

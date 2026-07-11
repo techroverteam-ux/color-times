@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { connectToDatabase } from "@/lib/db/connect";
 import { ServiceOrder } from "@/models/ServiceOrder";
 import { Product } from "@/models/Product";
+import "@/models/Booking";
 import { ServiceOrdersClient } from "@/components/admin/service-orders-client";
 
 export const metadata: Metadata = { title: "Dry Clean & Tailor" };

@@ -16,7 +16,32 @@ import { apiSuccess, apiError } from "@/lib/api/response";
 
 const REVENUE_STATUSES = ["confirmed", "in_use", "returned"];
 
-async function buildProductsReport(dateFilter: Record<string, unknown>, status: string | null) {
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+function paginate<T>(rows: T[], page: number, pageSize: number, all: boolean): { items: T[]; pagination: Pagination } {
+  const total = rows.length;
+  if (all) {
+    return { items: rows, pagination: { page: 1, pageSize: total || 1, total, totalPages: 1 } };
+  }
+  const start = (page - 1) * pageSize;
+  return {
+    items: rows.slice(start, start + pageSize),
+    pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
+  };
+}
+
+async function buildProductsReport(
+  dateFilter: Record<string, unknown>,
+  status: string | null,
+  page: number,
+  pageSize: number,
+  all: boolean
+) {
   const filter: Record<string, unknown> = { ...dateFilter };
   if (!status || status === "active") {
     filter.deletedAt = null;
@@ -43,6 +68,18 @@ async function buildProductsReport(dateFilter: Record<string, unknown>, status: 
   );
   const activeCount = products.filter((p) => p.isActive).length;
 
+  const mappedItems = products.map((p) => ({
+    _id: String(p._id),
+    name: p.name,
+    sku: p.sku,
+    category: (p.category as unknown as { name: string } | null)?.name ?? "—",
+    rentalPricePerDay: p.rentalPricePerDay,
+    retailValue: p.retailValue,
+    totalStock: p.variants.reduce((s, v) => s + v.quantityInStock, 0),
+    isActive: p.isActive,
+    createdAt: p.createdAt.toISOString(),
+  }));
+
   return {
     summary: {
       totalProducts: products.length,
@@ -50,21 +87,17 @@ async function buildProductsReport(dateFilter: Record<string, unknown>, status: 
       totalStockUnits,
       totalStockValue,
     },
-    items: products.map((p) => ({
-      _id: String(p._id),
-      name: p.name,
-      sku: p.sku,
-      category: (p.category as unknown as { name: string } | null)?.name ?? "—",
-      rentalPricePerDay: p.rentalPricePerDay,
-      retailValue: p.retailValue,
-      totalStock: p.variants.reduce((s, v) => s + v.quantityInStock, 0),
-      isActive: p.isActive,
-      createdAt: p.createdAt.toISOString(),
-    })),
+    ...paginate(mappedItems, page, pageSize, all),
   };
 }
 
-async function buildBookingsReport(dateFilter: Record<string, unknown>, status: string | null) {
+async function buildBookingsReport(
+  dateFilter: Record<string, unknown>,
+  status: string | null,
+  page: number,
+  pageSize: number,
+  all: boolean
+) {
   const filter: Record<string, unknown> = { ...dateFilter };
   if (status && status !== "all") filter.status = status;
 
@@ -77,6 +110,18 @@ async function buildBookingsReport(dateFilter: Record<string, unknown>, status: 
   const revenueBookings = bookings.filter((b) => REVENUE_STATUSES.includes(b.status));
   const totalRevenue = revenueBookings.reduce((sum, b) => sum + b.totalAmount, 0);
 
+  const mappedItems = bookings.map((b) => ({
+    _id: String(b._id),
+    bookingNumber: b.bookingNumber,
+    customer: (b.customer as unknown as { name: string } | null)?.name ?? "—",
+    product: (b.product as unknown as { name: string } | null)?.name ?? "—",
+    status: b.status,
+    totalAmount: b.totalAmount,
+    rentalStartDate: b.rentalStartDate.toISOString(),
+    rentalEndDate: b.rentalEndDate.toISOString(),
+    createdAt: b.createdAt.toISOString(),
+  }));
+
   return {
     summary: {
       totalBookings: bookings.length,
@@ -84,21 +129,17 @@ async function buildBookingsReport(dateFilter: Record<string, unknown>, status: 
       avgBookingValue: revenueBookings.length ? totalRevenue / revenueBookings.length : 0,
       activeCount: bookings.filter((b) => b.status === "in_use").length,
     },
-    items: bookings.map((b) => ({
-      _id: String(b._id),
-      bookingNumber: b.bookingNumber,
-      customer: (b.customer as unknown as { name: string } | null)?.name ?? "—",
-      product: (b.product as unknown as { name: string } | null)?.name ?? "—",
-      status: b.status,
-      totalAmount: b.totalAmount,
-      rentalStartDate: b.rentalStartDate.toISOString(),
-      rentalEndDate: b.rentalEndDate.toISOString(),
-      createdAt: b.createdAt.toISOString(),
-    })),
+    ...paginate(mappedItems, page, pageSize, all),
   };
 }
 
-async function buildInvoicesReport(dateFilter: Record<string, unknown>, status: string | null) {
+async function buildInvoicesReport(
+  dateFilter: Record<string, unknown>,
+  status: string | null,
+  page: number,
+  pageSize: number,
+  all: boolean
+) {
   const filter: Record<string, unknown> = { ...dateFilter, deletedAt: null };
   if (status && status !== "all") filter.status = status;
 
@@ -113,6 +154,18 @@ async function buildInvoicesReport(dateFilter: Record<string, unknown>, status: 
     .filter((i) => i.status !== "cancelled")
     .reduce((sum, i) => sum + i.amountDue, 0);
 
+  const mappedItems = invoices.map((i) => ({
+    _id: String(i._id),
+    invoiceNumber: i.invoiceNumber,
+    customer: (i.customer as unknown as { name: string } | null)?.name ?? "—",
+    total: i.total,
+    amountPaid: i.amountPaid,
+    amountDue: i.amountDue,
+    status: i.status,
+    dueDate: i.dueDate.toISOString(),
+    createdAt: i.createdAt.toISOString(),
+  }));
+
   return {
     summary: {
       totalInvoices: invoices.length,
@@ -120,21 +173,16 @@ async function buildInvoicesReport(dateFilter: Record<string, unknown>, status: 
       totalCollected,
       totalOutstanding,
     },
-    items: invoices.map((i) => ({
-      _id: String(i._id),
-      invoiceNumber: i.invoiceNumber,
-      customer: (i.customer as unknown as { name: string } | null)?.name ?? "—",
-      total: i.total,
-      amountPaid: i.amountPaid,
-      amountDue: i.amountDue,
-      status: i.status,
-      dueDate: i.dueDate.toISOString(),
-      createdAt: i.createdAt.toISOString(),
-    })),
+    ...paginate(mappedItems, page, pageSize, all),
   };
 }
 
-async function buildCustomersReport(dateFilter: Record<string, unknown>) {
+async function buildCustomersReport(
+  dateFilter: Record<string, unknown>,
+  page: number,
+  pageSize: number,
+  all: boolean
+) {
   const filter: Record<string, unknown> = { ...dateFilter, role: "customer" };
 
   const [customers, totalCustomersOverall] = await Promise.all([
@@ -142,26 +190,31 @@ async function buildCustomersReport(dateFilter: Record<string, unknown>) {
     User.countDocuments({ role: "customer" }),
   ]);
 
+  const mappedItems = customers.map((c) => ({
+    _id: String(c._id),
+    name: c.name,
+    email: c.email,
+    phone: c.phone ?? "—",
+    fatherName: c.fatherName ?? "—",
+    createdAt: c.createdAt.toISOString(),
+  }));
+
   return {
     summary: {
       newCustomers: customers.length,
       totalCustomersOverall,
     },
-    items: customers.map((c) => ({
-      _id: String(c._id),
-      name: c.name,
-      email: c.email,
-      phone: c.phone ?? "—",
-      fatherName: c.fatherName ?? "—",
-      createdAt: c.createdAt.toISOString(),
-    })),
+    ...paginate(mappedItems, page, pageSize, all),
   };
 }
 
 async function buildServicesReport(
   dateFilter: Record<string, unknown>,
   status: string | null,
-  serviceType: string | null
+  serviceType: string | null,
+  page: number,
+  pageSize: number,
+  all: boolean
 ) {
   const filter: Record<string, unknown> = { ...dateFilter, deletedAt: null };
   if (status && status !== "all") filter.status = status;
@@ -174,6 +227,19 @@ async function buildServicesReport(
 
   const totalCost = orders.reduce((sum, o) => sum + o.cost, 0);
 
+  const mappedItems = orders.map((o) => ({
+    _id: String(o._id),
+    product: (o.product as unknown as { name: string } | null)?.name ?? "—",
+    serviceType: o.serviceType,
+    description: o.description,
+    cost: o.cost,
+    status: o.status,
+    assignedTo: o.assignedTo ?? "—",
+    sentDate: o.sentDate.toISOString(),
+    expectedReturnDate: o.expectedReturnDate.toISOString(),
+    createdAt: o.createdAt.toISOString(),
+  }));
+
   return {
     summary: {
       totalOrders: orders.length,
@@ -182,18 +248,7 @@ async function buildServicesReport(
       pendingCount: orders.filter((o) => o.status === "pending" || o.status === "in_progress")
         .length,
     },
-    items: orders.map((o) => ({
-      _id: String(o._id),
-      product: (o.product as unknown as { name: string } | null)?.name ?? "—",
-      serviceType: o.serviceType,
-      description: o.description,
-      cost: o.cost,
-      status: o.status,
-      assignedTo: o.assignedTo ?? "—",
-      sentDate: o.sentDate.toISOString(),
-      expectedReturnDate: o.expectedReturnDate.toISOString(),
-      createdAt: o.createdAt.toISOString(),
-    })),
+    ...paginate(mappedItems, page, pageSize, all),
   };
 }
 
@@ -210,27 +265,30 @@ export async function GET(request: NextRequest): Promise<Response> {
   const to = searchParams.get("to");
   const status = searchParams.get("status");
   const serviceType = searchParams.get("serviceType");
+  const all = searchParams.get("all") === "true";
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20")));
 
   const range = resolveDateRange(rangePreset, from, to);
   const dateFilter = buildDateFilter("createdAt", range);
 
-  let report: { summary: Record<string, unknown>; items: unknown[] };
+  let report: { summary: Record<string, unknown>; items: unknown[]; pagination: Pagination };
 
   switch (type) {
     case "products":
-      report = await buildProductsReport(dateFilter, status);
+      report = await buildProductsReport(dateFilter, status, page, pageSize, all);
       break;
     case "bookings":
-      report = await buildBookingsReport(dateFilter, status);
+      report = await buildBookingsReport(dateFilter, status, page, pageSize, all);
       break;
     case "invoices":
-      report = await buildInvoicesReport(dateFilter, status);
+      report = await buildInvoicesReport(dateFilter, status, page, pageSize, all);
       break;
     case "customers":
-      report = await buildCustomersReport(dateFilter);
+      report = await buildCustomersReport(dateFilter, page, pageSize, all);
       break;
     case "services":
-      report = await buildServicesReport(dateFilter, status, serviceType);
+      report = await buildServicesReport(dateFilter, status, serviceType, page, pageSize, all);
       break;
     default:
       return apiError("Invalid report type", 400);

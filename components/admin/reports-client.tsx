@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown, FileSpreadsheet, Printer } from "lucide-react";
+import { FileDown, FileSpreadsheet, Printer, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,9 +13,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatCard } from "@/components/admin/stat-card";
-import { downloadCsv, downloadPdf } from "@/lib/admin/export";
+import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
+import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
+import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
+import { downloadCsv, downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { DATE_RANGE_PRESETS, DATE_RANGE_LABELS, type DateRangePreset } from "@/lib/admin/date-ranges";
 import { formatDate } from "@/lib/utils";
+import type { BookingStatus } from "@/models/Booking";
+import type { InvoiceStatus } from "@/models/Invoice";
+import type { ServiceOrderStatus } from "@/models/ServiceOrder";
+
+const PAGE_SIZE = 20;
 
 type ReportType = "products" | "bookings" | "invoices" | "customers" | "services";
 type Row = Record<string, string | number | boolean>;
@@ -74,6 +82,7 @@ interface ColumnConfig {
   key: string;
   label: string;
   format?: (row: Row) => string;
+  render?: (row: Row) => React.ReactNode;
 }
 
 const CURRENCY = (value: unknown) => `₹${Number(value ?? 0).toLocaleString("en-IN")}`;
@@ -94,7 +103,12 @@ const TABLE_CONFIGS: Record<ReportType, ColumnConfig[]> = {
     { key: "bookingNumber", label: "Booking #" },
     { key: "customer", label: "Customer" },
     { key: "product", label: "Product" },
-    { key: "status", label: "Status", format: (r) => String(r.status).replace("_", " ") },
+    {
+      key: "status",
+      label: "Status",
+      format: (r) => STATUS_OPTIONS.bookings.find((o) => o.value === r.status)?.label ?? String(r.status),
+      render: (r) => <BookingStatusBadge status={r.status as BookingStatus} />,
+    },
     { key: "totalAmount", label: "Total", format: (r) => CURRENCY(r.totalAmount) },
     { key: "rentalStartDate", label: "Start", format: (r) => DATE(r.rentalStartDate) },
     { key: "rentalEndDate", label: "End", format: (r) => DATE(r.rentalEndDate) },
@@ -103,7 +117,12 @@ const TABLE_CONFIGS: Record<ReportType, ColumnConfig[]> = {
   invoices: [
     { key: "invoiceNumber", label: "Invoice #" },
     { key: "customer", label: "Customer" },
-    { key: "status", label: "Status", format: (r) => String(r.status).replace("_", " ") },
+    {
+      key: "status",
+      label: "Status",
+      format: (r) => STATUS_OPTIONS.invoices.find((o) => o.value === r.status)?.label ?? String(r.status),
+      render: (r) => <InvoiceStatusBadge status={r.status as InvoiceStatus} />,
+    },
     { key: "total", label: "Total", format: (r) => CURRENCY(r.total) },
     { key: "amountPaid", label: "Paid", format: (r) => CURRENCY(r.amountPaid) },
     { key: "amountDue", label: "Due", format: (r) => CURRENCY(r.amountDue) },
@@ -126,7 +145,12 @@ const TABLE_CONFIGS: Record<ReportType, ColumnConfig[]> = {
     },
     { key: "description", label: "Description" },
     { key: "cost", label: "Cost", format: (r) => CURRENCY(r.cost) },
-    { key: "status", label: "Status", format: (r) => String(r.status).replace("_", " ") },
+    {
+      key: "status",
+      label: "Status",
+      format: (r) => STATUS_OPTIONS.services.find((o) => o.value === r.status)?.label ?? String(r.status),
+      render: (r) => <ServiceOrderStatusBadge status={r.status as ServiceOrderStatus} />,
+    },
     { key: "assignedTo", label: "Assigned To" },
     { key: "expectedReturnDate", label: "Expected Return", format: (r) => DATE(r.expectedReturnDate) },
   ],
@@ -169,9 +193,17 @@ const SUMMARY_CONFIGS: Record<ReportType, SummaryCardConfig[]> = {
   ],
 };
 
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 interface ReportData {
   summary: Record<string, number>;
   items: Row[];
+  pagination: Pagination;
   range: { from: string | null; to: string | null; label: string };
 }
 
@@ -182,6 +214,8 @@ async function fetchReport(params: {
   to: string;
   status: string;
   serviceType: string;
+  page?: number;
+  all?: boolean;
 }): Promise<ReportData> {
   const searchParams = new URLSearchParams({ type: params.type, range: params.range });
   if (params.range === "custom") {
@@ -190,6 +224,12 @@ async function fetchReport(params: {
   }
   if (params.status !== "all") searchParams.set("status", params.status);
   if (params.serviceType !== "all") searchParams.set("serviceType", params.serviceType);
+  if (params.all) {
+    searchParams.set("all", "true");
+  } else {
+    searchParams.set("page", String(params.page ?? 1));
+    searchParams.set("pageSize", String(PAGE_SIZE));
+  }
 
   const res = await fetch(`/api/admin/reports?${searchParams.toString()}`);
   const json = await res.json();
@@ -204,9 +244,11 @@ export function ReportsClient() {
   const [customTo, setCustomTo] = useState("");
   const [status, setStatus] = useState("all");
   const [serviceType, setServiceType] = useState("all");
+  const [page, setPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "reports", { reportType, range, customFrom, customTo, status, serviceType }],
+    queryKey: ["admin", "reports", { reportType, range, customFrom, customTo, status, serviceType, page }],
     queryFn: () =>
       fetchReport({
         type: reportType,
@@ -215,19 +257,39 @@ export function ReportsClient() {
         to: customTo,
         status,
         serviceType,
+        page,
       }),
   });
 
   const columns = TABLE_CONFIGS[reportType];
   const summaryConfig = SUMMARY_CONFIGS[reportType];
   const statusOptions = STATUS_OPTIONS[reportType];
+  const pagination = data?.pagination;
 
-  function exportRows(): { headers: string[]; rows: (string | number)[][] } {
+  async function exportRows(): Promise<{ headers: string[]; rows: (string | number)[][] }> {
+    const full = await fetchReport({
+      type: reportType,
+      range,
+      from: customFrom,
+      to: customTo,
+      status,
+      serviceType,
+      all: true,
+    });
     const headers = columns.map((c) => c.label);
-    const rows = (data?.items ?? []).map((row) =>
+    const rows = full.items.map((row) =>
       columns.map((c) => (c.format ? c.format(row) : (row[c.key] as string | number)))
     );
     return { headers, rows };
+  }
+
+  async function withExportGuard(action: () => Promise<void>): Promise<void> {
+    setIsExporting(true);
+    try {
+      await action();
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   return (
@@ -245,6 +307,7 @@ export function ReportsClient() {
           onValueChange={(value) => {
             setReportType((value as ReportType) ?? "bookings");
             setStatus("all");
+            setPage(1);
           }}
         >
           <SelectTrigger className="w-52">
@@ -263,7 +326,13 @@ export function ReportsClient() {
           </SelectContent>
         </Select>
 
-        <Select value={range} onValueChange={(value) => setRange((value as DateRangePreset) ?? "month")}>
+        <Select
+          value={range}
+          onValueChange={(value) => {
+            setRange((value as DateRangePreset) ?? "month");
+            setPage(1);
+          }}
+        >
           <SelectTrigger className="w-56">
             <SelectValue>
               {(value: DateRangePreset) => DATE_RANGE_LABELS[value] ?? value}
@@ -284,20 +353,32 @@ export function ReportsClient() {
               type="date"
               className="w-40"
               value={customFrom}
-              onChange={(event) => setCustomFrom(event.target.value)}
+              onChange={(event) => {
+                setCustomFrom(event.target.value);
+                setPage(1);
+              }}
             />
             <span className="text-sm text-muted-foreground">to</span>
             <Input
               type="date"
               className="w-40"
               value={customTo}
-              onChange={(event) => setCustomTo(event.target.value)}
+              onChange={(event) => {
+                setCustomTo(event.target.value);
+                setPage(1);
+              }}
             />
           </>
         )}
 
         {statusOptions.length > 0 && (
-          <Select value={status} onValueChange={(value) => setStatus(value ?? "all")}>
+          <Select
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value ?? "all");
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="w-44">
               <SelectValue>
                 {(value: string) => statusOptions.find((o) => o.value === value)?.label ?? value}
@@ -314,7 +395,13 @@ export function ReportsClient() {
         )}
 
         {reportType === "services" && (
-          <Select value={serviceType} onValueChange={(value) => setServiceType(value ?? "all")}>
+          <Select
+            value={serviceType}
+            onValueChange={(value) => {
+              setServiceType(value ?? "all");
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="w-44">
               <SelectValue>
                 {(value: string) =>
@@ -336,25 +423,49 @@ export function ReportsClient() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              const { headers, rows } = exportRows();
-              downloadCsv(`${reportType}-report`, headers, rows);
-            }}
+            disabled={isExporting}
+            onClick={() =>
+              withExportGuard(async () => {
+                const { headers, rows } = await exportRows();
+                downloadCsv(`${reportType}-report`, headers, rows);
+              })
+            }
           >
             <FileSpreadsheet className="h-4 w-4" /> CSV
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              const { headers, rows } = exportRows();
-              downloadPdf(
-                `${reportType}-report`,
-                `${REPORT_TYPE_OPTIONS.find((o) => o.value === reportType)?.label} Report — ${data?.range.label ?? ""}`,
-                headers,
-                rows
-              );
-            }}
+            disabled={isExporting}
+            onClick={() =>
+              withExportGuard(async () => {
+                const { headers, rows } = await exportRows();
+                await downloadExcel(
+                  `${reportType}-report`,
+                  `${REPORT_TYPE_OPTIONS.find((o) => o.value === reportType)?.label} Report`,
+                  headers,
+                  rows
+                );
+              })
+            }
+          >
+            <Table2 className="h-4 w-4" /> Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isExporting}
+            onClick={() =>
+              withExportGuard(async () => {
+                const { headers, rows } = await exportRows();
+                downloadPdf(
+                  `${reportType}-report`,
+                  `${REPORT_TYPE_OPTIONS.find((o) => o.value === reportType)?.label} Report — ${data?.range.label ?? ""}`,
+                  headers,
+                  rows
+                );
+              })
+            }
           >
             <FileDown className="h-4 w-4" /> PDF
           </Button>
@@ -367,7 +478,7 @@ export function ReportsClient() {
       {data && (
         <p className="text-sm text-muted-foreground">
           Showing <span className="font-medium text-foreground">{data.range.label}</span> &middot;{" "}
-          {data.items.length} records
+          {data.pagination.total} records
         </p>
       )}
 
@@ -410,7 +521,11 @@ export function ReportsClient() {
                 <tr key={index} className="border-b border-border last:border-0">
                   {columns.map((column) => (
                     <td key={column.key} className="px-4 py-3">
-                      {column.format ? column.format(row) : String(row[column.key] ?? "—")}
+                      {column.render
+                        ? column.render(row)
+                        : column.format
+                          ? column.format(row)
+                          : String(row[column.key] ?? "—")}
                     </td>
                   ))}
                 </tr>
@@ -425,6 +540,32 @@ export function ReportsClient() {
           </tbody>
         </table>
       </div>
+
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <p className="text-muted-foreground">
+            Page {pagination.page} of {pagination.totalPages} &middot; {pagination.total} records
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= pagination.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
