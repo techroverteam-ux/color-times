@@ -11,6 +11,7 @@ import { InvoicePaymentDialog } from "@/components/admin/invoice-payment-dialog"
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { AuditLogList } from "@/components/admin/audit-log-list";
 import { downloadInvoicePdf } from "@/lib/admin/invoice-pdf";
+import { formatDate } from "@/lib/utils";
 import type { InvoiceLineItem, InvoiceStatus, PaymentMethod } from "@/models/Invoice";
 
 interface PaymentRow {
@@ -158,8 +159,8 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Invoic
             <InvoiceStatusBadge status={invoice.status} />
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Issued {invoice.issuedAt ? new Date(invoice.issuedAt).toLocaleDateString("en-IN") : "—"}{" "}
-            &middot; Due {new Date(invoice.dueDate).toLocaleDateString("en-IN")}
+            Issued {invoice.issuedAt ? formatDate(invoice.issuedAt) : "—"}{" "}
+            &middot; Due {formatDate(invoice.dueDate)}
             {invoice.booking && <> &middot; Booking {invoice.booking.bookingNumber}</>}
           </p>
         </div>
@@ -169,7 +170,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Invoic
             variant="outline"
             size="sm"
             onClick={() =>
-              downloadInvoicePdf({
+              void downloadInvoicePdf({
                 invoiceNumber: invoice.invoiceNumber,
                 status: invoice.status,
                 createdAt: invoice.createdAt,
@@ -317,9 +318,7 @@ export function InvoiceDetailClient({ initialInvoice }: { initialInvoice: Invoic
                   <tbody>
                     {invoice.payments.map((payment) => (
                       <tr key={payment._id} className="border-b border-border last:border-0">
-                        <td className="px-4 py-3">
-                          {new Date(payment.paidAt).toLocaleDateString("en-IN")}
-                        </td>
+                        <td className="px-4 py-3">{formatDate(payment.paidAt)}</td>
                         <td className="px-4 py-3">{METHOD_LABELS[payment.method]}</td>
                         <td className="px-4 py-3">{formatCurrency(payment.amount)}</td>
                         <td className="px-4 py-3 text-muted-foreground">

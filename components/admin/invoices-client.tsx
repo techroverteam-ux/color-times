@@ -36,6 +36,7 @@ import {
 import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { downloadCsv, downloadPdf } from "@/lib/admin/export";
+import { formatDate } from "@/lib/utils";
 import type { InvoiceStatus } from "@/models/Invoice";
 
 interface InvoiceRow {
@@ -221,7 +222,7 @@ export function InvoicesClient({
       invoice.amountPaid,
       invoice.amountDue,
       invoice.status,
-      new Date(invoice.dueDate).toLocaleDateString("en-IN"),
+      formatDate(invoice.dueDate),
     ]);
     return { headers, rows };
   }
@@ -375,7 +376,7 @@ export function InvoicesClient({
                   <InvoiceStatusBadge status={invoice.status} />
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {new Date(invoice.dueDate).toLocaleDateString("en-IN")}
+                  {formatDate(invoice.dueDate)}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {view === "trash" ? (

@@ -18,6 +18,7 @@ import {
   ServiceOrderFormDialog,
   type ServiceOrderRow,
 } from "@/components/admin/service-order-form-dialog";
+import { formatDate } from "@/lib/utils";
 import type { ServiceOrderStatus } from "@/models/ServiceOrder";
 
 interface ProductOption {
@@ -232,7 +233,7 @@ export function ServiceOrdersClient({
                 <td className="px-4 py-3">₹{order.cost.toLocaleString("en-IN")}</td>
                 <td className="px-4 py-3 text-muted-foreground">{order.assignedTo ?? "—"}</td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {new Date(order.expectedReturnDate).toLocaleDateString("en-IN")}
+                  {formatDate(order.expectedReturnDate)}
                 </td>
                 <td className="px-4 py-3">
                   {view === "trash" ? (

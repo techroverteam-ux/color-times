@@ -1,3 +1,5 @@
+import { formatDate } from "@/lib/utils";
+
 export const DATE_RANGE_PRESETS = [
   "all",
   "today",
@@ -76,7 +78,7 @@ export function resolveDateRange(
       return {
         from,
         to,
-        label: `${from.toLocaleDateString("en-IN", { month: "short", year: "numeric" })} – ${now.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`,
+        label: `${from.toLocaleDateString("en-IN", { month: "short", year: "numeric" })} – ${formatDate(now)}`,
       };
     }
 

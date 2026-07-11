@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { BookingCalendar } from "@/components/admin/booking-calendar";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type { BookingStatus } from "@/models/Booking";
 
 interface BookingRow {
@@ -118,8 +118,8 @@ export function BookingsClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3">
           <Select
             value={status}
             onValueChange={(value) => {
@@ -127,7 +127,7 @@ export function BookingsClient({
               setPage(1);
             }}
           >
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-full sm:w-56">
               <SelectValue>
                 {(value: string) =>
                   STATUS_FILTERS.find((option) => option.value === value)?.label ?? value
@@ -142,7 +142,7 @@ export function BookingsClient({
               ))}
             </SelectContent>
           </Select>
-          <div className="flex rounded-md border border-border p-0.5">
+          <div className="flex shrink-0 rounded-md border border-border p-0.5">
             <button
               type="button"
               onClick={() => setView("table")}
@@ -212,13 +212,8 @@ export function BookingsClient({
                       {booking.product?.name ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(booking.rentalStartDate).toLocaleDateString(
-                        "en-IN",
-                      )}{" "}
-                      &rarr;{" "}
-                      {new Date(booking.rentalEndDate).toLocaleDateString(
-                        "en-IN",
-                      )}
+                      {formatDate(booking.rentalStartDate)} &rarr;{" "}
+                      {formatDate(booking.rentalEndDate)}
                     </td>
                     <td className="px-4 py-3">
                       &#8377;{booking.totalAmount.toLocaleString("en-IN")}

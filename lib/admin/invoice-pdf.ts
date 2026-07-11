@@ -1,6 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { siteConfig } from "@/lib/config/site";
+import { formatDate } from "@/lib/utils";
 import type { InvoiceLineItem, InvoiceStatus, PaymentMethod } from "@/models/Invoice";
 
 interface InvoicePdfPayment {
@@ -33,33 +34,63 @@ function formatCurrency(value: number): string {
   return `Rs. ${value.toLocaleString("en-IN")}`;
 }
 
-export function downloadInvoicePdf(invoice: InvoicePdfData): void {
-  const doc = new jsPDF({ orientation: "portrait" });
+function loadImageAsDataUrl(src: string): Promise<{ dataUrl: string; ratio: number } | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      resolve({ dataUrl: canvas.toDataURL("image/png"), ratio: img.naturalHeight / img.naturalWidth });
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
 
-  doc.setFontSize(18);
-  doc.text(siteConfig.name, 14, 18);
+export async function downloadInvoicePdf(invoice: InvoicePdfData): Promise<void> {
+  const doc = new jsPDF({ orientation: "portrait" });
+  const logo = await loadImageAsDataUrl("/logo-icon.png");
+
+  let textStartX = 14;
+  if (logo) {
+    const logoWidth = 16;
+    const logoHeight = logoWidth * logo.ratio;
+    doc.addImage(logo.dataUrl, "PNG", 14, 12, logoWidth, logoHeight);
+    textStartX = 14 + logoWidth + 4;
+  }
+
+  doc.setFontSize(16);
+  doc.text(siteConfig.name, textStartX, 19);
   doc.setFontSize(9);
-  doc.text(siteConfig.contact.address, 14, 24);
-  doc.text(`${siteConfig.contact.email} · ${siteConfig.contact.phone}`, 14, 29);
+  doc.text(siteConfig.contact.address, textStartX, 25);
+  doc.text(`${siteConfig.contact.email} · ${siteConfig.contact.phone}`, textStartX, 30);
 
   doc.setFontSize(16);
   doc.text("INVOICE", 196, 18, { align: "right" });
   doc.setFontSize(10);
   doc.text(invoice.invoiceNumber, 196, 24, { align: "right" });
-  doc.text(`Issued: ${new Date(invoice.createdAt).toLocaleDateString("en-IN")}`, 196, 29, {
+  doc.text(`Issued: ${formatDate(invoice.createdAt)}`, 196, 29, {
     align: "right",
   });
-  doc.text(`Due: ${new Date(invoice.dueDate).toLocaleDateString("en-IN")}`, 196, 34, {
+  doc.text(`Due: ${formatDate(invoice.dueDate)}`, 196, 34, {
     align: "right",
   });
   doc.text(`Status: ${invoice.status.replace("_", " ").toUpperCase()}`, 196, 39, { align: "right" });
 
   doc.setFontSize(10);
-  doc.text("Bill To:", 14, 42);
+  doc.text("Bill To:", 14, 46);
   doc.setFontSize(9);
-  doc.text(invoice.customer.name, 14, 47);
-  doc.text(invoice.customer.email, 14, 52);
-  if (invoice.customer.phone) doc.text(invoice.customer.phone, 14, 57);
+  doc.text(invoice.customer.name, 14, 51);
+  doc.text(invoice.customer.email, 14, 56);
+  if (invoice.customer.phone) doc.text(invoice.customer.phone, 14, 61);
 
   autoTable(doc, {
     head: [["Description", "Qty", "Unit Price", "Amount"]],
@@ -69,7 +100,7 @@ export function downloadInvoicePdf(invoice: InvoicePdfData): void {
       formatCurrency(item.unitPrice),
       formatCurrency(item.amount),
     ]),
-    startY: 64,
+    startY: 68,
     styles: { fontSize: 9 },
     headStyles: { fillColor: [32, 26, 22] },
   });
@@ -104,7 +135,7 @@ export function downloadInvoicePdf(invoice: InvoicePdfData): void {
     autoTable(doc, {
       head: [["Date", "Method", "Amount", "Reference"]],
       body: invoice.payments.map((payment) => [
-        new Date(payment.paidAt).toLocaleDateString("en-IN"),
+        formatDate(payment.paidAt),
         payment.method.replace("_", " "),
         formatCurrency(payment.amount),
         payment.reference ?? "—",

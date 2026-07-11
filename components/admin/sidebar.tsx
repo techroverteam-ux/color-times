@@ -19,7 +19,7 @@ export function AdminSidebar() {
     <aside className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-r lg:border-ivory/10 lg:bg-charcoal lg:text-ivory">
       <div className="flex h-16 items-center gap-3 border-b border-ivory/10 px-6">
         <Image
-          src="/images/placeholder/brand/logo.png"
+          src="/logo-icon.png"
           alt={siteConfig.name}
           width={32}
           height={32}

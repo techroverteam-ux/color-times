@@ -6,6 +6,7 @@ import { generateInvoiceNumber } from "@/lib/admin/invoice-number";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
+import { formatDate } from "@/lib/utils";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -46,9 +47,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       booking: booking._id,
       lineItems: [
         {
-          description: `Rental — ${productName} (${booking.size}), ${new Date(
-            booking.rentalStartDate
-          ).toLocaleDateString("en-IN")} to ${new Date(booking.rentalEndDate).toLocaleDateString("en-IN")}`,
+          description: `Rental — ${productName} (${booking.size}), ${formatDate(booking.rentalStartDate)} to ${formatDate(booking.rentalEndDate)}`,
           quantity: 1,
           unitPrice: rentalFee,
           amount: rentalFee,

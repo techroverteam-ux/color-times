@@ -10,6 +10,7 @@ import {
   notifyBookingReturned,
   notifyBookingCancelled,
 } from "@/lib/notifications/whatsapp-events";
+import { formatDate } from "@/lib/utils";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -67,9 +68,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
       variables: {
         bookingNumber: booking.bookingNumber,
         productName: product?.name ?? "",
-        eventDate: booking.eventDate.toLocaleDateString("en-IN"),
-        rentalStartDate: booking.rentalStartDate.toLocaleDateString("en-IN"),
-        rentalEndDate: booking.rentalEndDate.toLocaleDateString("en-IN"),
+        eventDate: formatDate(booking.eventDate),
+        rentalStartDate: formatDate(booking.rentalStartDate),
+        rentalEndDate: formatDate(booking.rentalEndDate),
         totalAmount: String(booking.totalAmount),
       },
     };

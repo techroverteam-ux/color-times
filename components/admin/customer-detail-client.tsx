@@ -20,6 +20,7 @@ import {
   customerUpdateSchema,
   type CustomerUpdateInput,
 } from "@/lib/validations/customer";
+import { formatDate } from "@/lib/utils";
 
 interface CustomerDetail {
   _id: string;
@@ -220,7 +221,7 @@ export function CustomerDetailClient({ initialCustomer }: { initialCustomer: Cus
         </div>
         <div>
           <p className="text-xs uppercase text-muted-foreground">Joined</p>
-          <p className="mt-1">{new Date(customer.createdAt).toLocaleDateString("en-IN")}</p>
+          <p className="mt-1">{formatDate(customer.createdAt)}</p>
         </div>
         <div>
           <p className="text-xs uppercase text-muted-foreground">Father&apos;s Name</p>

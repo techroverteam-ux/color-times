@@ -17,6 +17,9 @@ interface CalendarBooking {
   product: { name: string } | null;
 }
 
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MAX_VISIBLE_CHIPS = 3;
+
 function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -31,6 +34,34 @@ async function fetchCalendarBookings(from: Date, to: Date): Promise<CalendarBook
   const json = await res.json();
   if (!res.ok) throw new Error(json.error);
   return json.data.bookings;
+}
+
+function DayChip({
+  type,
+  booking,
+}: {
+  type: "pickup" | "return";
+  booking: CalendarBooking;
+}) {
+  const isPickup = type === "pickup";
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-1 truncate rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+        isPickup
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
+          : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+      )}
+      title={`${isPickup ? "Pickup" : "Return"}: ${booking.bookingNumber} — ${booking.customer?.name ?? ""}`}
+    >
+      {isPickup ? (
+        <LogOut className="h-2.5 w-2.5 shrink-0" />
+      ) : (
+        <LogIn className="h-2.5 w-2.5 shrink-0" />
+      )}
+      <span className="truncate">{booking.customer?.name ?? booking.bookingNumber}</span>
+    </div>
+  );
 }
 
 export function BookingCalendar() {
@@ -74,24 +105,26 @@ export function BookingCalendar() {
   const todayKey = toDateKey(new Date());
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-heading text-lg">
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <h2 className="font-heading text-xl">
           {monthCursor.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
         </h2>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="icon"
+        <div className="flex items-center gap-1 rounded-full border border-border bg-secondary/40 p-1">
+          <button
+            type="button"
             onClick={() =>
               setMonthCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
             }
+            className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
+            aria-label="Previous month"
           >
             <ChevronLeft className="h-4 w-4" />
-          </Button>
+          </button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
+            className="h-7 rounded-full px-3 text-xs"
             onClick={() => {
               const now = new Date();
               setMonthCursor(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -99,82 +132,90 @@ export function BookingCalendar() {
           >
             Today
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
+          <button
+            type="button"
             onClick={() =>
               setMonthCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
             }
+            className="grid h-7 w-7 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-card hover:text-foreground"
+            aria-label="Next month"
           >
             <ChevronRight className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-px overflow-hidden rounded-md border border-border bg-border text-xs">
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+      <div className="grid grid-cols-7 border-b border-border bg-secondary/20">
+        {WEEKDAYS.map((day, index) => (
           <div
             key={day}
-            className="bg-secondary/40 px-2 py-2 text-center font-medium uppercase tracking-wide text-muted-foreground"
+            className={cn(
+              "px-2 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+              (index === 0 || index === 6) && "text-accent/80"
+            )}
           >
             {day}
           </div>
         ))}
-        {days.map((day) => {
+      </div>
+
+      <div className="grid grid-cols-7">
+        {days.map((day, index) => {
           const key = toDateKey(day);
           const entry = bookingsByDate.get(key);
           const isCurrentMonth = day.getMonth() === monthCursor.getMonth();
           const isToday = key === todayKey;
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const allChips = [
+            ...(entry?.pickups.map((b) => ({ type: "pickup" as const, booking: b })) ?? []),
+            ...(entry?.returns.map((b) => ({ type: "return" as const, booking: b })) ?? []),
+          ];
+          const visibleChips = allChips.slice(0, MAX_VISIBLE_CHIPS);
+          const overflowCount = allChips.length - visibleChips.length;
 
           return (
             <div
               key={key}
               className={cn(
-                "min-h-24 bg-card p-1.5",
-                !isCurrentMonth && "bg-secondary/20 text-muted-foreground"
+                "min-h-28 border-b border-r border-border/70 p-2 transition-colors hover:bg-secondary/20",
+                index % 7 === 6 && "border-r-0",
+                !isCurrentMonth && "bg-secondary/10",
+                isWeekend && isCurrentMonth && "bg-secondary/5"
               )}
             >
               <p
                 className={cn(
-                  "mb-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-xs",
-                  isToday && "bg-primary font-medium text-primary-foreground"
+                  "mb-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs",
+                  isToday
+                    ? "bg-primary font-semibold text-primary-foreground shadow-sm"
+                    : isCurrentMonth
+                      ? "text-foreground"
+                      : "text-muted-foreground/50"
                 )}
               >
                 {day.getDate()}
               </p>
-              <div className="space-y-0.5">
-                {entry?.pickups.map((booking) => (
-                  <div
-                    key={`pickup-${booking._id}`}
-                    className="flex items-center gap-1 truncate rounded bg-emerald-100 px-1 py-0.5 text-[10px] text-emerald-800"
-                    title={`Pickup: ${booking.bookingNumber} — ${booking.customer?.name ?? ""}`}
-                  >
-                    <LogOut className="h-2.5 w-2.5 shrink-0" />
-                    <span className="truncate">{booking.customer?.name ?? booking.bookingNumber}</span>
-                  </div>
+              <div className="space-y-1">
+                {visibleChips.map(({ type, booking }) => (
+                  <DayChip key={`${type}-${booking._id}`} type={type} booking={booking} />
                 ))}
-                {entry?.returns.map((booking) => (
-                  <div
-                    key={`return-${booking._id}`}
-                    className="flex items-center gap-1 truncate rounded bg-amber-100 px-1 py-0.5 text-[10px] text-amber-800"
-                    title={`Return: ${booking.bookingNumber} — ${booking.customer?.name ?? ""}`}
-                  >
-                    <LogIn className="h-2.5 w-2.5 shrink-0" />
-                    <span className="truncate">{booking.customer?.name ?? booking.bookingNumber}</span>
-                  </div>
-                ))}
+                {overflowCount > 0 && (
+                  <p className="px-1.5 text-[10px] font-medium text-muted-foreground">
+                    +{overflowCount} more
+                  </p>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <LogOut className="h-3 w-3 text-emerald-700" /> Pickup
+      <div className="flex items-center gap-5 border-t border-border px-5 py-3 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pickup
         </span>
-        <span className="flex items-center gap-1">
-          <LogIn className="h-3 w-3 text-amber-700" /> Return
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-amber-500" /> Return
         </span>
       </div>
     </div>

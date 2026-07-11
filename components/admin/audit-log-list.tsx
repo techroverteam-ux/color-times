@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { History } from "lucide-react";
+import { formatDateTime } from "@/lib/utils";
 import type { AuditAction, AuditFieldChange } from "@/models/AuditLog";
 
 interface AuditLogEntry {
@@ -67,7 +68,7 @@ export function AuditLogList({ entityType, entityId }: { entityType: string; ent
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium">{ACTION_LABELS[entry.action]}</p>
             <p className="text-xs text-muted-foreground">
-              {new Date(entry.createdAt).toLocaleString("en-IN")}
+              {formatDateTime(entry.createdAt)}
             </p>
           </div>
           <p className="text-xs text-muted-foreground">

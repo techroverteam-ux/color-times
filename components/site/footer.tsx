@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { siteConfig } from "@/lib/config/site";
 import { Separator } from "@/components/ui/separator";
@@ -9,9 +10,18 @@ export function Footer() {
     <footer className="bg-charcoal text-ivory">
       <div className="container-boutique py-16 grid grid-cols-2 gap-10 md:grid-cols-4 lg:grid-cols-5">
         <div className="col-span-2">
-          <span className="font-heading text-2xl tracking-wide">
-            {siteConfig.shortName}
-          </span>
+          <div className="flex items-center gap-2">
+            <Image
+              src="/logo-icon.png"
+              alt={siteConfig.name}
+              width={36}
+              height={36}
+              className="h-9 w-9 object-contain"
+            />
+            <span className="font-heading text-2xl tracking-wide">
+              {siteConfig.shortName}
+            </span>
+          </div>
           <p className="mt-4 max-w-xs text-sm text-ivory/70 leading-relaxed">
             {siteConfig.description}
           </p>

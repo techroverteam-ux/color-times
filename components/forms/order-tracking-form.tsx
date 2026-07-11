@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { trackingSchema, type TrackingInput } from "@/lib/validations/tracking";
+import { formatDate } from "@/lib/utils";
 
 interface TrackingResult {
   bookingNumber: string;
@@ -111,15 +112,15 @@ export function OrderTrackingForm() {
           <div className="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
             <div>
               <p className="text-xs uppercase text-muted-foreground">Event Date</p>
-              <p className="mt-1">{new Date(result.eventDate).toLocaleDateString("en-IN")}</p>
+              <p className="mt-1">{formatDate(result.eventDate)}</p>
             </div>
             <div>
               <p className="text-xs uppercase text-muted-foreground">Delivery</p>
-              <p className="mt-1">{new Date(result.rentalStartDate).toLocaleDateString("en-IN")}</p>
+              <p className="mt-1">{formatDate(result.rentalStartDate)}</p>
             </div>
             <div>
               <p className="text-xs uppercase text-muted-foreground">Return By</p>
-              <p className="mt-1">{new Date(result.rentalEndDate).toLocaleDateString("en-IN")}</p>
+              <p className="mt-1">{formatDate(result.rentalEndDate)}</p>
             </div>
           </div>
         </div>

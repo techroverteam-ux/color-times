@@ -5,6 +5,7 @@ import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
 import { notifyInvoiceSent } from "@/lib/notifications/whatsapp-events";
+import { formatDate } from "@/lib/utils";
 import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function POST(
@@ -50,7 +51,7 @@ export async function POST(
         invoiceNumber: invoice.invoiceNumber,
         totalAmount: String(invoice.total),
         amountDue: String(invoice.amountDue),
-        dueDate: invoice.dueDate.toLocaleDateString("en-IN"),
+        dueDate: formatDate(invoice.dueDate),
       },
     });
   }

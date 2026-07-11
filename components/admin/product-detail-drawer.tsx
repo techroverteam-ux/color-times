@@ -61,7 +61,7 @@ export function ProductDetailDrawer({
           </div>
         ) : (
           <>
-            <SheetHeader className="border-b border-border">
+            <SheetHeader className="border-b border-border pr-10">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <SheetTitle className="font-heading text-xl">{product.name}</SheetTitle>

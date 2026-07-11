@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
+import { formatDate } from "@/lib/utils";
 
 interface CustomerRow {
   _id: string;
@@ -60,7 +61,7 @@ export function CustomersClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -94,7 +95,7 @@ export function CustomersClient({
                 <td className="px-4 py-3 text-muted-foreground">{customer.email}</td>
                 <td className="px-4 py-3 text-muted-foreground">{customer.phone ?? "—"}</td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {new Date(customer.createdAt).toLocaleDateString("en-IN")}
+                  {formatDate(customer.createdAt)}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <ButtonLink

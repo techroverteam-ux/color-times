@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 
 interface NotificationLogRow {
   _id: string;
@@ -137,7 +137,7 @@ export function WhatsAppLogList() {
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {new Date(log.createdAt).toLocaleString("en-IN")}
+                  {formatDateTime(log.createdAt)}
                 </td>
               </tr>
             ))}

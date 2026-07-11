@@ -15,6 +15,7 @@ import {
 import { StatCard } from "@/components/admin/stat-card";
 import { downloadCsv, downloadPdf } from "@/lib/admin/export";
 import { DATE_RANGE_PRESETS, DATE_RANGE_LABELS, type DateRangePreset } from "@/lib/admin/date-ranges";
+import { formatDate } from "@/lib/utils";
 
 type ReportType = "products" | "bookings" | "invoices" | "customers" | "services";
 type Row = Record<string, string | number | boolean>;
@@ -76,7 +77,7 @@ interface ColumnConfig {
 }
 
 const CURRENCY = (value: unknown) => `₹${Number(value ?? 0).toLocaleString("en-IN")}`;
-const DATE = (value: unknown) => new Date(String(value)).toLocaleDateString("en-IN");
+const DATE = (value: unknown) => formatDate(String(value));
 
 const TABLE_CONFIGS: Record<ReportType, ColumnConfig[]> = {
   products: [

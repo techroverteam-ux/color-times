@@ -50,7 +50,7 @@ export function Navbar() {
       <nav className="container-boutique flex h-20 items-center justify-between">
         <Link href="/" className="flex items-center gap-3 shrink-0">
           <Image
-            src="/images/placeholder/brand/logo.png"
+            src="/logo-icon.png"
             alt={siteConfig.name}
             width={44}
             height={44}
