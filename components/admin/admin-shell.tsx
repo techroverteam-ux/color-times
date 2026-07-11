@@ -15,7 +15,7 @@ export function AdminShell({
   return (
     <AdminThemeProvider>
       <div className="flex min-h-screen bg-secondary/30">
-        <AdminSidebar />
+        <AdminSidebar role={user.role} />
         <div className="flex min-w-0 flex-1 flex-col">
           <AdminTopbar user={user} />
           <main className="flex-1 overflow-x-hidden p-4 pb-4 lg:p-8">{children}</main>

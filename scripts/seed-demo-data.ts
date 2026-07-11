@@ -72,6 +72,7 @@ async function main() {
       passwordHash,
       role: "customer" as const,
       isEmailVerified: true,
+      isActive: true,
       wishlist: [],
       addresses: [
         {

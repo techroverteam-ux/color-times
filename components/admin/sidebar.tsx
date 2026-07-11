@@ -3,17 +3,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { adminNavItems } from "@/lib/config/admin-nav";
+import { navItemsForRole } from "@/lib/config/admin-nav";
 import { siteConfig } from "@/lib/config/site";
 import { cn } from "@/lib/utils";
+import type { UserRole } from "@/models/User";
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/admin") return pathname === "/admin";
   return pathname.startsWith(href);
 }
 
-export function AdminSidebar() {
+export function AdminSidebar({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const navItems = navItemsForRole(role);
 
   return (
     <aside className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-r lg:border-ivory/10 lg:bg-charcoal lg:text-ivory">
@@ -32,7 +34,7 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {adminNavItems.map((item) => {
+        {navItems.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <Link

@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Moon, Sun, User as UserIcon } from "lucide-react";
+import { LogOut, Moon, Settings, Sun, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -63,13 +65,20 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
           <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel className="font-normal">
-            <p className="text-sm font-medium">{user.name}</p>
-            <p className="text-xs text-muted-foreground">{user.email}</p>
-            <p className="mt-1 text-[10px] uppercase tracking-wide text-accent">
-              {user.role.replace("_", " ")}
-            </p>
-          </DropdownMenuLabel>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="font-normal">
+              <p className="text-sm font-medium">{user.name}</p>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
+              <p className="mt-1 text-[10px] uppercase tracking-wide text-accent">
+                {user.role.replace("_", " ")}
+              </p>
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/admin/account" />}>
+            <Settings className="h-4 w-4" />
+            Account Settings
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={handleLogout}

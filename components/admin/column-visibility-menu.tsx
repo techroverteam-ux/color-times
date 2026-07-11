@@ -6,6 +6,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -30,7 +31,9 @@ export function ColumnVisibilityMenu({ columns, visible, onChange }: ColumnVisib
         Columns
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         {columns.map((column) => (
           <DropdownMenuCheckboxItem

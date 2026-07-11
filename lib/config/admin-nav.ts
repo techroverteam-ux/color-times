@@ -9,12 +9,16 @@ import {
   MessageCircle,
   Sparkles,
   BarChart3,
+  UserCog,
 } from "lucide-react";
+import { MANAGER_ROLES } from "@/lib/auth/roles";
+import type { UserRole } from "@/models/User";
 
 export interface AdminNavItem {
   label: string;
   href: string;
   icon: LucideIcon;
+  roles?: UserRole[];
 }
 
 export const adminNavItems: AdminNavItem[] = [
@@ -27,7 +31,12 @@ export const adminNavItems: AdminNavItem[] = [
   { label: "Dry Clean & Tailor", href: "/admin/services", icon: Sparkles },
   { label: "Reports", href: "/admin/reports", icon: BarChart3 },
   { label: "WhatsApp", href: "/admin/whatsapp", icon: MessageCircle },
+  { label: "Team", href: "/admin/users", icon: UserCog, roles: MANAGER_ROLES },
 ];
+
+export function navItemsForRole(role: UserRole): AdminNavItem[] {
+  return adminNavItems.filter((item) => !item.roles || item.roles.includes(role));
+}
 
 const MOBILE_BOTTOM_NAV_HREFS = ["/admin", "/admin/products", "/admin/bookings", "/admin/invoices", "/admin/customers"];
 

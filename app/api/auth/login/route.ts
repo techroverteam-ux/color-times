@@ -29,6 +29,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError("Invalid email or password", 401);
     }
 
+    if (!user.isActive) {
+      return apiError("This account has been deactivated. Contact an administrator.", 403);
+    }
+
     const accessToken = await signAccessToken({
       sub: user._id.toString(),
       email: user.email,
