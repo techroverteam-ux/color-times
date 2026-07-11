@@ -23,7 +23,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     await connectToDatabase();
 
-    const booking = await Booking.findById(bookingId).populate("product", "name").lean();
+    const booking = await Booking.findById(bookingId).populate("items.product", "name").lean();
     if (!booking) {
       return apiError("Booking not found", 404);
     }
@@ -37,24 +37,27 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError("This booking already has an active invoice", 409);
     }
 
-    const productName = (booking.product as unknown as { name: string } | null)?.name ?? "Rental";
-    const rentalFee = booking.rentalFee;
-    const total = booking.rentalFee + booking.securityDeposit;
+    const dateRange = `${formatDate(booking.rentalStartDate)} to ${formatDate(booking.rentalEndDate)}`;
+    const lineItems = booking.items.map((item) => {
+      const productName = (item.product as unknown as { name: string } | null)?.name ?? "Rental";
+      const unitPrice = item.rentalFee / item.quantity;
+      return {
+        description: `Rental — ${productName} (${item.size}), ${dateRange}`,
+        quantity: item.quantity,
+        unitPrice,
+        amount: item.rentalFee,
+      };
+    });
+    const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+    const total = subtotal + booking.securityDeposit;
     const invoiceNumber = await generateInvoiceNumber();
 
     const invoice = await Invoice.create({
       invoiceNumber,
       customer: booking.customer,
       booking: booking._id,
-      lineItems: [
-        {
-          description: `Rental — ${productName} (${booking.size}), ${formatDate(booking.rentalStartDate)} to ${formatDate(booking.rentalEndDate)}`,
-          quantity: 1,
-          unitPrice: rentalFee,
-          amount: rentalFee,
-        },
-      ],
-      subtotal: rentalFee,
+      lineItems,
+      subtotal,
       discountAmount: 0,
       taxRate: 0,
       taxAmount: 0,

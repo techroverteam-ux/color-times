@@ -24,16 +24,15 @@ interface Pagination {
   totalPages: number;
 }
 
-function paginate<T>(rows: T[], page: number, pageSize: number, all: boolean): { items: T[]; pagination: Pagination } {
-  const total = rows.length;
+function buildPagination(total: number, page: number, pageSize: number, all: boolean): Pagination {
   if (all) {
-    return { items: rows, pagination: { page: 1, pageSize: total || 1, total, totalPages: 1 } };
+    return { page: 1, pageSize: total || 1, total, totalPages: 1 };
   }
-  const start = (page - 1) * pageSize;
-  return {
-    items: rows.slice(start, start + pageSize),
-    pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) },
-  };
+  return { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
+}
+
+function skipLimit(page: number, pageSize: number, all: boolean): { skip: number; limit: number } {
+  return all ? { skip: 0, limit: 0 } : { skip: (page - 1) * pageSize, limit: pageSize };
 }
 
 async function buildProductsReport(
@@ -54,20 +53,32 @@ async function buildProductsReport(
     filter.deletedAt = { $ne: null };
   }
 
-  const products = await Product.find(filter)
-    .populate("category", "name")
-    .sort({ createdAt: -1 })
-    .lean();
+  const { skip, limit } = skipLimit(page, pageSize, all);
 
-  const totalStockUnits = products.reduce(
-    (sum, p) => sum + p.variants.reduce((s, v) => s + v.quantityInStock, 0),
-    0
-  );
-  const totalStockValue = products.reduce(
-    (sum, p) => sum + p.retailValue * p.variants.reduce((s, v) => s + v.quantityInStock, 0),
-    0
-  );
-  const activeCount = products.filter((p) => p.isActive).length;
+  const [totalProducts, statsAgg, products] = await Promise.all([
+    Product.countDocuments(filter),
+    Product.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          activeCount: { $sum: { $cond: ["$isActive", 1, 0] } },
+          totalStockUnits: { $sum: { $sum: "$variants.quantityInStock" } },
+          totalStockValue: {
+            $sum: { $multiply: ["$retailValue", { $sum: "$variants.quantityInStock" }] },
+          },
+        },
+      },
+    ]),
+    Product.find(filter)
+      .populate("category", "name")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const stats = statsAgg[0] ?? { activeCount: 0, totalStockUnits: 0, totalStockValue: 0 };
 
   const mappedItems = products.map((p) => ({
     _id: String(p._id),
@@ -83,12 +94,13 @@ async function buildProductsReport(
 
   return {
     summary: {
-      totalProducts: products.length,
-      activeCount,
-      totalStockUnits,
-      totalStockValue,
+      totalProducts,
+      activeCount: stats.activeCount,
+      totalStockUnits: stats.totalStockUnits,
+      totalStockValue: stats.totalStockValue,
     },
-    ...paginate(mappedItems, page, pageSize, all),
+    items: mappedItems,
+    pagination: buildPagination(totalProducts, page, pageSize, all),
   };
 }
 
@@ -102,14 +114,26 @@ async function buildBookingsReport(
   const filter: Record<string, unknown> = { ...dateFilter };
   if (status && status !== "all") filter.status = status;
 
-  const bookings = await Booking.find(filter)
-    .populate("customer", "name")
-    .populate("product", "name")
-    .sort({ createdAt: -1 })
-    .lean();
+  const { skip, limit } = skipLimit(page, pageSize, all);
 
-  const revenueBookings = bookings.filter((b) => REVENUE_STATUSES.includes(b.status));
-  const totalRevenue = revenueBookings.reduce((sum, b) => sum + b.totalAmount, 0);
+  const [totalBookings, revenueAgg, activeCount, bookings] = await Promise.all([
+    Booking.countDocuments(filter),
+    Booking.aggregate([
+      { $match: { ...filter, status: { $in: REVENUE_STATUSES } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" }, count: { $sum: 1 } } },
+    ]),
+    Booking.countDocuments({ ...filter, status: "in_use" }),
+    Booking.find(filter)
+      .populate("customer", "name")
+      .populate("product", "name")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const totalRevenue = revenueAgg[0]?.total ?? 0;
+  const revenueCount = revenueAgg[0]?.count ?? 0;
 
   const mappedItems = bookings.map((b) => ({
     _id: String(b._id),
@@ -125,12 +149,13 @@ async function buildBookingsReport(
 
   return {
     summary: {
-      totalBookings: bookings.length,
+      totalBookings,
       totalRevenue,
-      avgBookingValue: revenueBookings.length ? totalRevenue / revenueBookings.length : 0,
-      activeCount: bookings.filter((b) => b.status === "in_use").length,
+      avgBookingValue: revenueCount ? totalRevenue / revenueCount : 0,
+      activeCount,
     },
-    ...paginate(mappedItems, page, pageSize, all),
+    items: mappedItems,
+    pagination: buildPagination(totalBookings, page, pageSize, all),
   };
 }
 
@@ -144,16 +169,25 @@ async function buildInvoicesReport(
   const filter: Record<string, unknown> = { ...dateFilter, deletedAt: null };
   if (status && status !== "all") filter.status = status;
 
-  const invoices = await Invoice.find(filter)
-    .populate("customer", "name")
-    .sort({ createdAt: -1 })
-    .lean();
+  const { skip, limit } = skipLimit(page, pageSize, all);
 
-  const totalInvoiced = invoices.reduce((sum, i) => sum + i.total, 0);
-  const totalCollected = invoices.reduce((sum, i) => sum + i.amountPaid, 0);
-  const totalOutstanding = invoices
-    .filter((i) => i.status !== "cancelled")
-    .reduce((sum, i) => sum + i.amountDue, 0);
+  const [totalInvoices, totalsAgg, outstandingAgg, invoices] = await Promise.all([
+    Invoice.countDocuments(filter),
+    Invoice.aggregate([
+      { $match: filter },
+      { $group: { _id: null, totalInvoiced: { $sum: "$total" }, totalCollected: { $sum: "$amountPaid" } } },
+    ]),
+    Invoice.aggregate([
+      { $match: { ...filter, status: { $ne: "cancelled" } } },
+      { $group: { _id: null, totalOutstanding: { $sum: "$amountDue" } } },
+    ]),
+    Invoice.find(filter)
+      .populate("customer", "name")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
 
   const mappedItems = invoices.map((i) => ({
     _id: String(i._id),
@@ -169,12 +203,13 @@ async function buildInvoicesReport(
 
   return {
     summary: {
-      totalInvoices: invoices.length,
-      totalInvoiced,
-      totalCollected,
-      totalOutstanding,
+      totalInvoices,
+      totalInvoiced: totalsAgg[0]?.totalInvoiced ?? 0,
+      totalCollected: totalsAgg[0]?.totalCollected ?? 0,
+      totalOutstanding: outstandingAgg[0]?.totalOutstanding ?? 0,
     },
-    ...paginate(mappedItems, page, pageSize, all),
+    items: mappedItems,
+    pagination: buildPagination(totalInvoices, page, pageSize, all),
   };
 }
 
@@ -185,10 +220,12 @@ async function buildCustomersReport(
   all: boolean
 ) {
   const filter: Record<string, unknown> = { ...dateFilter, role: "customer" };
+  const { skip, limit } = skipLimit(page, pageSize, all);
 
-  const [customers, totalCustomersOverall] = await Promise.all([
-    User.find(filter).sort({ createdAt: -1 }).lean(),
+  const [newCustomers, totalCustomersOverall, customers] = await Promise.all([
+    User.countDocuments(filter),
     User.countDocuments({ role: "customer" }),
+    User.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
   ]);
 
   const mappedItems = customers.map((c) => ({
@@ -202,10 +239,11 @@ async function buildCustomersReport(
 
   return {
     summary: {
-      newCustomers: customers.length,
+      newCustomers,
       totalCustomersOverall,
     },
-    ...paginate(mappedItems, page, pageSize, all),
+    items: mappedItems,
+    pagination: buildPagination(newCustomers, page, pageSize, all),
   };
 }
 
@@ -221,12 +259,23 @@ async function buildServicesReport(
   if (status && status !== "all") filter.status = status;
   if (serviceType && serviceType !== "all") filter.serviceType = serviceType;
 
-  const orders = await ServiceOrder.find(filter)
-    .populate("product", "name")
-    .sort({ createdAt: -1 })
-    .lean();
+  const { skip, limit } = skipLimit(page, pageSize, all);
 
-  const totalCost = orders.reduce((sum, o) => sum + o.cost, 0);
+  const [totalOrders, costAgg, completedCount, pendingCount, orders] = await Promise.all([
+    ServiceOrder.countDocuments(filter),
+    ServiceOrder.aggregate([
+      { $match: filter },
+      { $group: { _id: null, total: { $sum: "$cost" } } },
+    ]),
+    ServiceOrder.countDocuments({ ...filter, status: "completed" }),
+    ServiceOrder.countDocuments({ ...filter, status: { $in: ["pending", "in_progress"] } }),
+    ServiceOrder.find(filter)
+      .populate("product", "name")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
 
   const mappedItems = orders.map((o) => ({
     _id: String(o._id),
@@ -243,13 +292,13 @@ async function buildServicesReport(
 
   return {
     summary: {
-      totalOrders: orders.length,
-      totalCost,
-      completedCount: orders.filter((o) => o.status === "completed").length,
-      pendingCount: orders.filter((o) => o.status === "pending" || o.status === "in_progress")
-        .length,
+      totalOrders,
+      totalCost: costAgg[0]?.total ?? 0,
+      completedCount,
+      pendingCount,
     },
-    ...paginate(mappedItems, page, pageSize, all),
+    items: mappedItems,
+    pagination: buildPagination(totalOrders, page, pageSize, all),
   };
 }
 

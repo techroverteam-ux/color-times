@@ -11,7 +11,7 @@ import {
   BarChart3,
   UserCog,
 } from "lucide-react";
-import { MANAGER_ROLES } from "@/lib/auth/roles";
+import { MANAGER_ROLES, SETTINGS_ROLES } from "@/lib/auth/roles";
 import type { UserRole } from "@/models/User";
 
 export interface AdminNavItem {
@@ -61,7 +61,7 @@ const NAV_GROUPS_BY_ROLE: { label: string; items: AdminNavItem[] }[] = [
   },
   {
     label: "Marketing",
-    items: [{ label: "WhatsApp", href: "/admin/whatsapp", icon: MessageCircle }],
+    items: [{ label: "WhatsApp", href: "/admin/whatsapp", icon: MessageCircle, roles: SETTINGS_ROLES }],
   },
 ];
 

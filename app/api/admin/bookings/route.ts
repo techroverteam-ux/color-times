@@ -10,6 +10,7 @@ import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
+import { daysBetween } from "@/lib/utils";
 
 export async function GET(request: NextRequest): Promise<Response> {
   const auth = await requireApiRole(ADMIN_ROLES);
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const [bookings, total] = await Promise.all([
     Booking.find(filter)
       .populate("customer", "name email")
-      .populate("product", "name images")
+      .populate("items.product", "name images")
       .sort({ createdAt: -1 })
       .skip((page - 1) * pageSize)
       .limit(pageSize)
@@ -60,37 +61,54 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     await connectToDatabase();
 
-    const product = await Product.findById(input.product).lean();
-    if (!product) {
-      return apiError("Dress not found", 404);
-    }
-
     const rentalStartDate = new Date(input.rentalStartDate);
     const rentalEndDate = new Date(input.rentalEndDate);
+    const days = daysBetween(rentalStartDate, rentalEndDate);
 
-    const conflicts = await findBookingConflicts(input.product, rentalStartDate, rentalEndDate);
-    if (conflicts.length > 0) {
-      const conflict = conflicts[0];
-      return apiError(
-        `This dress is already booked (${conflict.bookingNumber}) from ${conflict.rentalStartDate.toDateString()} to ${conflict.rentalEndDate.toDateString()}`,
-        409
-      );
+    const items = [];
+    let securityDeposit = 0;
+
+    for (const inputItem of input.items) {
+      const product = await Product.findById(inputItem.product).lean();
+      if (!product) {
+        return apiError("One of the selected dresses could not be found", 404);
+      }
+
+      const conflicts = await findBookingConflicts(inputItem.product, rentalStartDate, rentalEndDate);
+      if (conflicts.length > 0) {
+        const conflict = conflicts[0];
+        return apiError(
+          `${product.name} is already booked (${conflict.bookingNumber}) from ${conflict.rentalStartDate.toDateString()} to ${conflict.rentalEndDate.toDateString()}`,
+          409
+        );
+      }
+
+      const pricePerDay = product.rentalPricePerDay;
+      const rentalFee = pricePerDay * days * inputItem.quantity;
+      securityDeposit += product.securityDeposit * inputItem.quantity;
+
+      items.push({
+        product: inputItem.product,
+        size: inputItem.size,
+        quantity: inputItem.quantity,
+        pricePerDay,
+        rentalFee,
+      });
     }
 
+    const totalAmount = items.reduce((sum, item) => sum + item.rentalFee, 0) + securityDeposit;
     const bookingNumber = await generateBookingNumber();
 
     const booking = await Booking.create({
       bookingNumber,
       customer: input.customer,
-      product: input.product,
-      size: input.size,
+      items,
       rentalStartDate,
       rentalEndDate,
       eventDate: new Date(input.eventDate),
       status: "inquiry",
-      rentalFee: input.rentalFee,
-      securityDeposit: input.securityDeposit,
-      totalAmount: input.totalAmount,
+      securityDeposit,
+      totalAmount,
       deliveryAddress: input.deliveryAddress,
       notes: input.notes || undefined,
     });
@@ -105,7 +123,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const populated = await Booking.findById(booking._id)
       .populate("customer", "name email")
-      .populate("product", "name images")
+      .populate("items.product", "name images")
       .lean();
 
     return apiSuccess({ booking: populated }, 201);

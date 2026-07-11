@@ -5,7 +5,7 @@ import { Settings } from "@/models/Settings";
 import { WhatsAppTemplate } from "@/models/WhatsAppTemplate";
 import { NotificationLog } from "@/models/NotificationLog";
 import { requireApiRole } from "@/lib/api/require-role";
-import { ADMIN_ROLES } from "@/lib/auth/roles";
+import { SETTINGS_ROLES } from "@/lib/auth/roles";
 import { sendWhatsAppMessage } from "@/lib/notifications/brevo-whatsapp";
 import { DEFAULT_WHATSAPP_SETTINGS, type WhatsAppSettingsInput } from "@/lib/validations/whatsapp-settings";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
@@ -16,7 +16,7 @@ const testMessageSchema = z.object({
 });
 
 export async function POST(request: NextRequest): Promise<Response> {
-  const auth = await requireApiRole(ADMIN_ROLES);
+  const auth = await requireApiRole(SETTINGS_ROLES);
   if ("error" in auth) return auth.error;
 
   try {

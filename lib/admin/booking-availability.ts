@@ -19,7 +19,7 @@ export async function findBookingConflicts(
   excludeBookingId?: string
 ): Promise<BookingConflict[]> {
   const filter: Record<string, unknown> = {
-    product: productId,
+    "items.product": productId,
     status: { $in: ACTIVE_BOOKING_STATUSES },
     rentalStartDate: { $lte: rentalEndDate },
     rentalEndDate: { $gte: rentalStartDate },

@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requireRole } from "@/lib/auth/session";
+import { SETTINGS_ROLES } from "@/lib/auth/roles";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Settings } from "@/models/Settings";
 import { WhatsAppTemplate } from "@/models/WhatsAppTemplate";
@@ -13,6 +16,11 @@ import { DEFAULT_WHATSAPP_SETTINGS, type WhatsAppSettingsInput } from "@/lib/val
 export const metadata: Metadata = { title: "WhatsApp" };
 
 export default async function AdminWhatsAppPage() {
+  const currentUser = await requireRole(SETTINGS_ROLES);
+  if (!currentUser) {
+    redirect("/admin");
+  }
+
   await connectToDatabase();
 
   const [settingsDoc, templates] = await Promise.all([

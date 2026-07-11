@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Settings } from "@/models/Settings";
 import { requireApiRole } from "@/lib/api/require-role";
-import { ADMIN_ROLES } from "@/lib/auth/roles";
+import { SETTINGS_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog, diffObjects } from "@/lib/audit/log";
 import {
   whatsAppSettingsSchema,
@@ -14,7 +14,7 @@ import { apiSuccess, apiErrorFromUnknown } from "@/lib/api/response";
 const MODULE_KEY = "whatsapp";
 
 export async function GET(): Promise<Response> {
-  const auth = await requireApiRole(ADMIN_ROLES);
+  const auth = await requireApiRole(SETTINGS_ROLES);
   if ("error" in auth) return auth.error;
 
   await connectToDatabase();
@@ -27,7 +27,7 @@ export async function GET(): Promise<Response> {
 }
 
 export async function PATCH(request: NextRequest): Promise<Response> {
-  const auth = await requireApiRole(ADMIN_ROLES);
+  const auth = await requireApiRole(SETTINGS_ROLES);
   if ("error" in auth) return auth.error;
 
   try {

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { getCurrentUser } from "@/lib/auth/session";
+import { SETTINGS_ROLES } from "@/lib/auth/roles";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Product } from "@/models/Product";
 import { Category } from "@/models/Category";
@@ -9,6 +11,9 @@ export const metadata: Metadata = { title: "Products" };
 const PAGE_SIZE = 20;
 
 export default async function AdminProductsPage() {
+  const currentUser = await getCurrentUser();
+  const canManageSettings = Boolean(currentUser && SETTINGS_ROLES.includes(currentUser.role));
+
   await connectToDatabase();
 
   const activeFilter = { deletedAt: null, archivedAt: null };
@@ -60,6 +65,7 @@ export default async function AdminProductsPage() {
         name: category.name,
         slug: category.slug,
       }))}
+      canManageSettings={canManageSettings}
     />
   );
 }

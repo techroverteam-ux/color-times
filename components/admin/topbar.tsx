@@ -51,7 +51,7 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
       <div className="flex items-center gap-1">
         <Sheet open={navOpen} onOpenChange={setNavOpen}>
           <Button
@@ -67,13 +67,13 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
-            <div className="flex h-16 items-center justify-center border-b border-border px-6">
+            <div className="flex h-20 items-center justify-center border-b border-border px-6">
               <Image
                 src="/logo-icon.png"
                 alt={siteConfig.name}
-                width={40}
-                height={40}
-                className="h-10 w-10 object-contain"
+                width={56}
+                height={56}
+                className="h-14 w-14 object-contain"
               />
             </div>
             <div className="flex-1 overflow-y-auto">

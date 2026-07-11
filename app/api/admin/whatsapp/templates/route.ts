@@ -3,12 +3,12 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { WhatsAppTemplate } from "@/models/WhatsAppTemplate";
 import { whatsAppTemplateSchema } from "@/lib/validations/whatsapp-template";
 import { requireApiRole } from "@/lib/api/require-role";
-import { ADMIN_ROLES } from "@/lib/auth/roles";
+import { SETTINGS_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
 import { apiSuccess, apiErrorFromUnknown } from "@/lib/api/response";
 
 export async function GET(): Promise<Response> {
-  const auth = await requireApiRole(ADMIN_ROLES);
+  const auth = await requireApiRole(SETTINGS_ROLES);
   if ("error" in auth) return auth.error;
 
   await connectToDatabase();
@@ -18,7 +18,7 @@ export async function GET(): Promise<Response> {
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
-  const auth = await requireApiRole(ADMIN_ROLES);
+  const auth = await requireApiRole(SETTINGS_ROLES);
   if ("error" in auth) return auth.error;
 
   try {

@@ -2,11 +2,11 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { NotificationLog } from "@/models/NotificationLog";
 import { requireApiRole } from "@/lib/api/require-role";
-import { ADMIN_ROLES } from "@/lib/auth/roles";
+import { SETTINGS_ROLES } from "@/lib/auth/roles";
 import { apiSuccess } from "@/lib/api/response";
 
 export async function GET(request: NextRequest): Promise<Response> {
-  const auth = await requireApiRole(ADMIN_ROLES);
+  const auth = await requireApiRole(SETTINGS_ROLES);
   if ("error" in auth) return auth.error;
 
   await connectToDatabase();

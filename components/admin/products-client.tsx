@@ -133,10 +133,12 @@ export function ProductsClient({
   initialProducts,
   initialPagination,
   categories,
+  canManageSettings,
 }: {
   initialProducts: ProductRow[];
   initialPagination: Pagination;
   categories: CategoryOption[];
+  canManageSettings: boolean;
 }) {
   const queryClient = useQueryClient();
   const [view, setView] = useState<"table" | "card">("table");
@@ -534,9 +536,11 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
           </Select>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ButtonLink variant="outline" size="icon" href="/admin/products/settings" aria-label="Inventory settings">
-            <Settings2 className="h-4 w-4" />
-          </ButtonLink>
+          {canManageSettings && (
+            <ButtonLink variant="outline" size="icon" href="/admin/products/settings" aria-label="Inventory settings">
+              <Settings2 className="h-4 w-4" />
+            </ButtonLink>
+          )}
           <ProductImportDialog />
           <ProductQuickAddDialog categories={categories} />
           <ButtonLink href="/admin/products/new" className="rounded-md">

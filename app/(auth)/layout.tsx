@@ -24,12 +24,17 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             className="h-14 w-14 object-contain sm:h-16 sm:w-16"
           />
           <span className="font-heading text-xl tracking-wide">{siteConfig.name}</span>
-          <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            ERP Portal
-          </span>
         </div>
 
         <div className="mt-6 w-full max-w-md">{children}</div>
+
+        <Image
+          src="/logo.png"
+          alt={siteConfig.name}
+          width={160}
+          height={160}
+          className="mt-8 h-28 w-28 object-contain opacity-90 sm:h-32 sm:w-32"
+        />
       </div>
     </div>
   );

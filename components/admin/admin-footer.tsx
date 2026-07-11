@@ -1,6 +1,6 @@
 export function AdminFooter() {
   return (
-    <footer className="flex flex-col items-center justify-between gap-2 border-t border-border px-4 py-4 pb-6 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:pb-4">
+    <footer className="flex flex-col items-center justify-between gap-2 border-t border-border bg-card px-4 py-4 pb-6 text-xs text-muted-foreground sm:flex-row sm:px-6 lg:pb-4">
       <p>&copy; {new Date().getFullYear()} Color Times Boutique. All rights reserved.</p>
       <a
         href="https://techrover.in"

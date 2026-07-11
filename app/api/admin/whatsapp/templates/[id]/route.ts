@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { WhatsAppTemplate } from "@/models/WhatsAppTemplate";
 import { whatsAppTemplateSchema } from "@/lib/validations/whatsapp-template";
 import { requireApiRole } from "@/lib/api/require-role";
-import { ADMIN_ROLES } from "@/lib/auth/roles";
+import { SETTINGS_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog, diffObjects } from "@/lib/audit/log";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
@@ -12,7 +12,7 @@ interface RouteParams {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams): Promise<Response> {
-  const auth = await requireApiRole(ADMIN_ROLES);
+  const auth = await requireApiRole(SETTINGS_ROLES);
   if ("error" in auth) return auth.error;
 
   try {
@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams): Promise<Response> {
-  const auth = await requireApiRole(ADMIN_ROLES);
+  const auth = await requireApiRole(SETTINGS_ROLES);
   if ("error" in auth) return auth.error;
 
   const { id } = await params;

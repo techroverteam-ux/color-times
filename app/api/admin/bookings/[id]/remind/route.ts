@@ -20,14 +20,17 @@ export async function POST(
 
   const booking = await Booking.findById(id)
     .populate("customer", "name phone")
-    .populate("product", "name");
+    .populate("items.product", "name");
 
   if (!booking) {
     return apiError("Booking not found", 404);
   }
 
   const customer = booking.customer as unknown as { name: string; phone?: string } | null;
-  const product = booking.product as unknown as { name: string } | null;
+  const productNames = booking.items
+    .map((item) => (item.product as unknown as { name: string } | null)?.name)
+    .filter(Boolean)
+    .join(", ");
 
   await notifyBookingReminder({
     customerName: customer?.name ?? "Customer",
@@ -36,7 +39,7 @@ export async function POST(
     relatedEntityId: id,
     variables: {
       bookingNumber: booking.bookingNumber,
-      productName: product?.name ?? "",
+      productName: productNames,
       eventDate: formatDate(booking.eventDate),
       rentalStartDate: formatDate(booking.rentalStartDate),
     },

@@ -17,17 +17,23 @@ export const RETURN_CONDITIONS: ReturnCondition[] = [
   "missing_items",
 ];
 
+export interface BookingItem {
+  product: Types.ObjectId;
+  size: string;
+  quantity: number;
+  pricePerDay: number;
+  rentalFee: number;
+}
+
 export interface IBooking extends Document {
   _id: Types.ObjectId;
   bookingNumber: string;
   customer: Types.ObjectId;
-  product: Types.ObjectId;
-  size: string;
+  items: BookingItem[];
   rentalStartDate: Date;
   rentalEndDate: Date;
   eventDate: Date;
   status: BookingStatus;
-  rentalFee: number;
   securityDeposit: number;
   totalAmount: number;
   deliveryAddress: string;
@@ -39,12 +45,29 @@ export interface IBooking extends Document {
   updatedAt: Date;
 }
 
+const bookingItemSchema = new Schema<BookingItem>(
+  {
+    product: { type: Schema.Types.ObjectId, ref: "Product", required: true, index: true },
+    size: { type: String, required: true },
+    quantity: { type: Number, required: true, min: 1, default: 1 },
+    pricePerDay: { type: Number, required: true, min: 0 },
+    rentalFee: { type: Number, required: true, min: 0 },
+  },
+  { _id: false }
+);
+
 const bookingSchema = new Schema<IBooking>(
   {
     bookingNumber: { type: String, required: true, unique: true, index: true },
     customer: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    product: { type: Schema.Types.ObjectId, ref: "Product", required: true, index: true },
-    size: { type: String, required: true },
+    items: {
+      type: [bookingItemSchema],
+      required: true,
+      validate: {
+        validator: (items: BookingItem[]) => items.length > 0,
+        message: "A booking requires at least one item.",
+      },
+    },
     rentalStartDate: { type: Date, required: true },
     rentalEndDate: { type: Date, required: true },
     eventDate: { type: Date, required: true },
@@ -54,7 +77,6 @@ const bookingSchema = new Schema<IBooking>(
       default: "inquiry",
       index: true,
     },
-    rentalFee: { type: Number, required: true, min: 0 },
     securityDeposit: { type: Number, required: true, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 },
     deliveryAddress: { type: String, required: true },

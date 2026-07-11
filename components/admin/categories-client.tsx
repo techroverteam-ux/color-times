@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Grid3x3, List, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CategoryRow | null>(null);
+  const [view, setView] = useState<"table" | "card">("table");
 
   const { data: categories = initialCategories } = useQuery({
     queryKey: ["admin", "categories"],
@@ -124,33 +125,29 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
     onError: (error: Error) => toast.error(error.message),
   });
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{categories.length} categories</p>
-        <Button onClick={openCreateDialog} className="rounded-md">
-          <Plus className="h-4 w-4" />
-          New Category
-        </Button>
-      </div>
-
-      <div className="space-y-3 lg:hidden">
-        {categories.map((category) => (
-          <div key={category._id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-4">
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-secondary">
-              {category.heroImage && (
-                <Image src={category.heroImage} alt={category.name} fill sizes="48px" className="object-cover" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{category.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{category.slug}</p>
-              <p className="text-xs text-muted-foreground">
-                Order {category.displayOrder}
-                {category.isFeatured && " · Featured"}
-              </p>
-            </div>
-            <div className="flex gap-1">
+  const cardGrid = (
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      {categories.map((category) => (
+        <div key={category._id} className="overflow-hidden rounded-lg border border-border bg-card">
+          <div className="relative aspect-square bg-secondary">
+            {category.heroImage && (
+              <Image
+                src={category.heroImage}
+                alt={category.name}
+                fill
+                sizes="(min-width: 1280px) 25vw, (min-width: 640px) 33vw, 50vw"
+                className="object-cover"
+              />
+            )}
+          </div>
+          <div className="p-3">
+            <p className="truncate text-sm font-medium">{category.name}</p>
+            <p className="truncate text-xs text-muted-foreground">{category.slug}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Order {category.displayOrder}
+              {category.isFeatured && " · Featured"}
+            </p>
+            <div className="mt-2 flex justify-end gap-1">
               <Button variant="ghost" size="icon-sm" onClick={() => openEditDialog(category)}>
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
@@ -169,14 +166,51 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
               </Button>
             </div>
           </div>
-        ))}
-        {categories.length === 0 && (
-          <p className="py-10 text-center text-muted-foreground">
-            No categories yet. Create your first one.
-          </p>
-        )}
+        </div>
+      ))}
+      {categories.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">
+          No categories yet. Create your first one.
+        </p>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">{categories.length} categories</p>
+          <div className="hidden items-center gap-1 rounded-md border border-border p-1 lg:flex">
+            <Button
+              variant={view === "table" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setView("table")}
+              aria-label="Table view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={view === "card" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setView("card")}
+              aria-label="Card view"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <Button onClick={openCreateDialog} className="rounded-md">
+          <Plus className="h-4 w-4" />
+          New Category
+        </Button>
       </div>
 
+      <div className="lg:hidden">{cardGrid}</div>
+
+      {view === "card" ? (
+        <div className="hidden lg:block">{cardGrid}</div>
+      ) : (
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
         <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -235,6 +269,7 @@ export function CategoriesClient({ initialCategories }: { initialCategories: Cat
           </tbody>
         </table>
       </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-lg">

@@ -10,13 +10,13 @@ import type { UserRole } from "@/models/User";
 export function AdminSidebar({ role }: { role: UserRole }) {
   return (
     <aside className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-r lg:border-ivory/10 lg:bg-charcoal lg:text-ivory">
-      <div className="flex h-16 items-center justify-center border-b border-ivory/10 px-6">
+      <div className="flex h-20 items-center justify-center border-b border-ivory/10 px-6">
         <Image
           src="/logo-icon.png"
           alt={siteConfig.name}
-          width={40}
-          height={40}
-          className="h-10 w-10 object-contain"
+          width={56}
+          height={56}
+          className="h-14 w-14 object-contain"
         />
       </div>
 

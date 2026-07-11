@@ -20,3 +20,12 @@ export function formatDateTime(value: string | number | Date): string {
   const time = date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })
   return `${formatDate(date)}, ${time}`
 }
+
+/** Inclusive day count between two dates (same-day rentals count as 1 day). */
+export function daysBetween(from: string | Date, to: string | Date): number {
+  if (!from || !to) return 0
+  const start = new Date(from)
+  const end = new Date(to)
+  const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  return Math.max(1, diff + 1)
+}

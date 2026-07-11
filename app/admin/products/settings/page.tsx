@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { requireRole } from "@/lib/auth/session";
+import { SETTINGS_ROLES } from "@/lib/auth/roles";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Settings } from "@/models/Settings";
 import { InventorySettingsForm } from "@/components/admin/inventory-settings-form";
@@ -9,6 +12,11 @@ import { DEFAULT_INVENTORY_SETTINGS } from "@/lib/validations/inventory-settings
 export const metadata: Metadata = { title: "Inventory Settings" };
 
 export default async function InventorySettingsPage() {
+  const currentUser = await requireRole(SETTINGS_ROLES);
+  if (!currentUser) {
+    redirect("/admin");
+  }
+
   await connectToDatabase();
   const settings = await Settings.findOne({ module: "inventory" }).lean();
 

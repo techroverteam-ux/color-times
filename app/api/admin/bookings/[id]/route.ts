@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
 
   const booking = await Booking.findById(id)
     .populate("customer", "name email phone")
-    .populate("product", "name images sku")
+    .populate("items.product", "name images sku")
     .lean();
 
   if (!booking) {
@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
 
     const booking = await Booking.findByIdAndUpdate(id, update, { returnDocument: "after" })
       .populate("customer", "name phone")
-      .populate("product", "name");
+      .populate("items.product", "name");
 
     if (!booking) {
       return apiError("Booking not found", 404);
@@ -80,24 +80,30 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
       });
     }
 
-    // Keep the dress's inventory status in sync with the booking lifecycle.
+    // Keep each dress's inventory status in sync with the booking lifecycle.
+    const productIds = booking.items.map((item) => item.product);
     if (input.status === "confirmed" || input.status === "in_use") {
-      await Product.findByIdAndUpdate(booking.product, { status: "booked" });
+      await Product.updateMany({ _id: { $in: productIds } }, { status: "booked" });
     } else if (input.status === "returned") {
-      await Product.findByIdAndUpdate(booking.product, { status: "returned" });
+      await Product.updateMany({ _id: { $in: productIds } }, { status: "returned" });
     } else if (input.status === "cancelled") {
-      const stillActive = await Booking.exists({
-        product: booking.product,
-        status: { $in: ACTIVE_BOOKING_STATUSES },
-        _id: { $ne: booking._id },
-      });
-      if (!stillActive) {
-        await Product.findByIdAndUpdate(booking.product, { status: "available" });
+      for (const productId of productIds) {
+        const stillActive = await Booking.exists({
+          "items.product": productId,
+          status: { $in: ACTIVE_BOOKING_STATUSES },
+          _id: { $ne: booking._id },
+        });
+        if (!stillActive) {
+          await Product.findByIdAndUpdate(productId, { status: "available" });
+        }
       }
     }
 
     const customer = booking.customer as unknown as { name: string; phone?: string } | null;
-    const product = booking.product as unknown as { name: string } | null;
+    const productNames = booking.items
+      .map((item) => (item.product as unknown as { name: string } | null)?.name)
+      .filter(Boolean)
+      .join(", ");
 
     const notifyContext = {
       customerName: customer?.name ?? "Customer",
@@ -106,7 +112,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
       relatedEntityId: id,
       variables: {
         bookingNumber: booking.bookingNumber,
-        productName: product?.name ?? "",
+        productName: productNames,
         eventDate: formatDate(booking.eventDate),
         rentalStartDate: formatDate(booking.rentalStartDate),
         rentalEndDate: formatDate(booking.rentalEndDate),
