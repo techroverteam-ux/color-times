@@ -3,12 +3,31 @@ import { ACCESS_TOKEN_COOKIE } from "@/lib/auth/cookies";
 import { verifyAccessToken } from "@/lib/auth/tokens";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 
-const CUSTOMER_PREFIXES = ["/account", "/wishlist"];
+const GATED_MARKETING_PREFIXES = [
+  "/home",
+  "/collections",
+  "/about",
+  "/contact",
+  "/faq",
+  "/gallery",
+  "/offers",
+  "/testimonials",
+  "/blog",
+  "/privacy-policy",
+  "/terms",
+  "/order-tracking",
+  "/account",
+  "/wishlist",
+];
 
 function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", pathname);
   return NextResponse.redirect(loginUrl);
+}
+
+function redirectToSiteLock(request: NextRequest): NextResponse {
+  return NextResponse.redirect(new URL("/site-locked", request.url));
 }
 
 /**
@@ -21,13 +40,34 @@ function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const isAdminRoute = pathname.startsWith("/admin");
-  const isCustomerRoute = CUSTOMER_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const isGatedMarketingRoute = GATED_MARKETING_PREFIXES.some((prefix) =>
+    pathname.startsWith(prefix)
+  );
 
-  if (!isAdminRoute && !isCustomerRoute) {
+  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+
+  // The public marketing site is currently restricted to the developer
+  // account only, while the ERP work is in progress. Everyone else —
+  // logged out, or logged in as staff/admin/super_admin/customer — is
+  // redirected to a locked notice.
+  if (isGatedMarketingRoute) {
+    if (!accessToken) {
+      return redirectToLogin(request, pathname);
+    }
+    try {
+      const payload = await verifyAccessToken(accessToken);
+      if (payload.role !== "developer") {
+        return redirectToSiteLock(request);
+      }
+    } catch {
+      return redirectToLogin(request, pathname);
+    }
     return NextResponse.next();
   }
 
-  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  if (!isAdminRoute) {
+    return NextResponse.next();
+  }
 
   if (!accessToken) {
     return redirectToLogin(request, pathname);
@@ -47,5 +87,21 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/wishlist/:path*", "/admin/:path*"],
+  matcher: [
+    "/account/:path*",
+    "/wishlist/:path*",
+    "/admin/:path*",
+    "/home/:path*",
+    "/collections/:path*",
+    "/about/:path*",
+    "/contact/:path*",
+    "/faq/:path*",
+    "/gallery/:path*",
+    "/offers/:path*",
+    "/testimonials/:path*",
+    "/blog/:path*",
+    "/privacy-policy/:path*",
+    "/terms/:path*",
+    "/order-tracking/:path*",
+  ],
 };

@@ -1,8 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink } from "lucide-react";
-import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { Lock } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function VisitWebsiteLink({ className }: { className?: string }) {
@@ -15,21 +23,27 @@ export function VisitWebsiteLink({ className }: { className?: string }) {
         onClick={() => setOpen(true)}
         className={cn("flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground", className)}
       >
-        <ExternalLink className="h-3 w-3" />
+        <Lock className="h-3 w-3" />
         View Website
       </button>
 
-      <ConfirmDialog
-        open={open}
-        onOpenChange={setOpen}
-        title="Leave the admin portal?"
-        description="This opens the public Color Times Boutique website in a new tab. You'll stay signed in here."
-        confirmLabel="Open Website"
-        onConfirm={() => {
-          window.open("/home", "_blank", "noopener,noreferrer");
-          setOpen(false);
-        }}
-      />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Website Access Locked
+            </DialogTitle>
+            <DialogDescription>
+              Viewing the public website from the admin portal is currently locked. Please
+              connect with your administrator for access.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setOpen(false)}>OK</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
