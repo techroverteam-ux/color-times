@@ -15,12 +15,14 @@ async function main() {
   console.log(`Backfilled status="available" on ${result.modifiedCount} products.`);
 
   const activeBookings = await Booking.find({ status: { $in: ACTIVE_BOOKING_STATUSES } })
-    .select("product")
+    .select("items.product")
     .lean();
   let bookedCount = 0;
   for (const booking of activeBookings) {
-    await Product.findByIdAndUpdate(booking.product, { status: "booked" });
-    bookedCount += 1;
+    for (const item of booking.items) {
+      await Product.findByIdAndUpdate(item.product, { status: "booked" });
+      bookedCount += 1;
+    }
   }
   console.log(`Set status="booked" on ${bookedCount} products with active bookings.`);
 

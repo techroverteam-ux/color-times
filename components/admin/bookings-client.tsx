@@ -28,7 +28,14 @@ interface BookingRow {
   rentalEndDate: string;
   totalAmount: number;
   customer: { name: string; email: string } | null;
-  product: { name: string } | null;
+  items: { product: { name: string } | null }[];
+}
+
+function productSummary(items: { product: { name: string } | null }[]): string {
+  const names = items.map((item) => item.product?.name ?? "—");
+  if (names.length === 0) return "—";
+  if (names.length === 1) return names[0];
+  return `${names[0]} +${names.length - 1} more`;
 }
 
 interface Pagination {
@@ -203,7 +210,7 @@ export function BookingsClient({
                 </div>
                 <p className="mt-2 text-sm">{booking.customer?.name ?? "—"}</p>
                 <p className="text-xs text-muted-foreground">{booking.customer?.email}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{booking.product?.name ?? "—"}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{productSummary(booking.items)}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {formatDate(booking.rentalStartDate)} &rarr; {formatDate(booking.rentalEndDate)}
                 </p>
@@ -276,7 +283,7 @@ export function BookingsClient({
                       </p>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {booking.product?.name ?? "—"}
+                      {productSummary(booking.items)}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {formatDate(booking.rentalStartDate)} &rarr;{" "}

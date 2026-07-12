@@ -4,7 +4,7 @@ import "@/models/User";
 import "@/models/Product";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
-import { apiSuccess, apiError } from "@/lib/api/response";
+import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 import { notifyBookingReminder } from "@/lib/notifications/whatsapp-events";
 import { formatDate } from "@/lib/utils";
 
@@ -15,35 +15,39 @@ export async function POST(
   const auth = await requireApiRole(ADMIN_ROLES);
   if ("error" in auth) return auth.error;
 
-  const { id } = await params;
-  await connectToDatabase();
+  try {
+    const { id } = await params;
+    await connectToDatabase();
 
-  const booking = await Booking.findById(id)
-    .populate("customer", "name phone")
-    .populate("items.product", "name");
+    const booking = await Booking.findById(id)
+      .populate("customer", "name phone")
+      .populate("items.product", "name");
 
-  if (!booking) {
-    return apiError("Booking not found", 404);
+    if (!booking) {
+      return apiError("Booking not found", 404);
+    }
+
+    const customer = booking.customer as unknown as { name: string; phone?: string } | null;
+    const productNames = booking.items
+      .map((item) => (item.product as unknown as { name: string } | null)?.name)
+      .filter(Boolean)
+      .join(", ");
+
+    await notifyBookingReminder({
+      customerName: customer?.name ?? "Customer",
+      customerPhone: customer?.phone,
+      relatedEntityType: "Booking",
+      relatedEntityId: id,
+      variables: {
+        bookingNumber: booking.bookingNumber,
+        productName: productNames,
+        eventDate: formatDate(booking.eventDate),
+        rentalStartDate: formatDate(booking.rentalStartDate),
+      },
+    });
+
+    return apiSuccess({ sent: true });
+  } catch (error) {
+    return apiErrorFromUnknown(error);
   }
-
-  const customer = booking.customer as unknown as { name: string; phone?: string } | null;
-  const productNames = booking.items
-    .map((item) => (item.product as unknown as { name: string } | null)?.name)
-    .filter(Boolean)
-    .join(", ");
-
-  await notifyBookingReminder({
-    customerName: customer?.name ?? "Customer",
-    customerPhone: customer?.phone,
-    relatedEntityType: "Booking",
-    relatedEntityId: id,
-    variables: {
-      bookingNumber: booking.bookingNumber,
-      productName: productNames,
-      eventDate: formatDate(booking.eventDate),
-      rentalStartDate: formatDate(booking.rentalStartDate),
-    },
-  });
-
-  return apiSuccess({ sent: true });
 }

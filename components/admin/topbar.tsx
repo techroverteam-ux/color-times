@@ -71,13 +71,13 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
               <Image
                 src="/logo-icon.png"
                 alt={siteConfig.name}
-                width={56}
-                height={56}
-                className="h-14 w-14 object-contain"
+                width={72}
+                height={72}
+                className="h-[72px] w-[72px] object-contain"
               />
             </div>
             <div className="flex-1 overflow-y-auto">
-              <AdminNavLinks role={user.role} tone="light" onNavigate={() => setNavOpen(false)} />
+              <AdminNavLinks role={user.role} onNavigate={() => setNavOpen(false)} />
             </div>
             <div className="border-t border-border p-4">
               <Link

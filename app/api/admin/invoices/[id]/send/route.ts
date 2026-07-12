@@ -8,7 +8,7 @@ import { recordAuditLog } from "@/lib/audit/log";
 import { notifyInvoiceSent } from "@/lib/notifications/whatsapp-events";
 import { formatDate } from "@/lib/utils";
 import { siteConfig } from "@/lib/config/site";
-import { apiSuccess, apiError } from "@/lib/api/response";
+import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 export async function POST(
   request: NextRequest,
@@ -17,47 +17,51 @@ export async function POST(
   const auth = await requireApiRole(ADMIN_ROLES);
   if ("error" in auth) return auth.error;
 
-  const { id } = await params;
-  await connectToDatabase();
+  try {
+    const { id } = await params;
+    await connectToDatabase();
 
-  const existing = await Invoice.findById(id).lean();
-  if (!existing) {
-    return apiError("Invoice not found", 404);
-  }
-  if (existing.status !== "draft") {
-    return apiError("Only draft invoices can be sent", 409);
-  }
+    const existing = await Invoice.findById(id).lean();
+    if (!existing) {
+      return apiError("Invoice not found", 404);
+    }
+    if (existing.status !== "draft") {
+      return apiError("Only draft invoices can be sent", 409);
+    }
 
-  const invoice = await Invoice.findByIdAndUpdate(
-    id,
-    { status: "sent", issuedAt: new Date() },
-    { returnDocument: "after" }
-  ).populate("customer", "name phone");
+    const invoice = await Invoice.findByIdAndUpdate(
+      id,
+      { status: "sent", issuedAt: new Date() },
+      { returnDocument: "after" }
+    ).populate("customer", "name phone");
 
-  await recordAuditLog({
-    entityType: "Invoice",
-    entityId: id,
-    action: "status_change",
-    actor: auth.user,
-    changes: [{ field: "status", from: "draft", to: "sent" }],
-  });
-
-  if (invoice) {
-    const customer = invoice.customer as unknown as { name: string; phone?: string } | null;
-    void notifyInvoiceSent({
-      customerName: customer?.name ?? "Customer",
-      customerPhone: customer?.phone,
-      relatedEntityType: "Invoice",
-      relatedEntityId: id,
-      variables: {
-        invoiceNumber: invoice.invoiceNumber,
-        totalAmount: String(invoice.total),
-        amountDue: String(invoice.amountDue),
-        dueDate: formatDate(invoice.dueDate),
-        invoicePdfUrl: `${siteConfig.url}/api/invoices/${id}/pdf`,
-      },
+    await recordAuditLog({
+      entityType: "Invoice",
+      entityId: id,
+      action: "status_change",
+      actor: auth.user,
+      changes: [{ field: "status", from: "draft", to: "sent" }],
     });
-  }
 
-  return apiSuccess({ invoice });
+    if (invoice) {
+      const customer = invoice.customer as unknown as { name: string; phone?: string } | null;
+      void notifyInvoiceSent({
+        customerName: customer?.name ?? "Customer",
+        customerPhone: customer?.phone,
+        relatedEntityType: "Invoice",
+        relatedEntityId: id,
+        variables: {
+          invoiceNumber: invoice.invoiceNumber,
+          totalAmount: String(invoice.total),
+          amountDue: String(invoice.amountDue),
+          dueDate: formatDate(invoice.dueDate),
+          invoicePdfUrl: `${siteConfig.url}/api/invoices/${id}/pdf`,
+        },
+      });
+    }
+
+    return apiSuccess({ invoice });
+  } catch (error) {
+    return apiErrorFromUnknown(error);
+  }
 }

@@ -9,27 +9,27 @@ import type { UserRole } from "@/models/User";
 
 export function AdminSidebar({ role }: { role: UserRole }) {
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-r lg:border-ivory/10 lg:bg-charcoal lg:text-ivory">
-      <div className="flex h-20 items-center justify-center border-b border-ivory/10 px-6">
+    <aside className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:border-r lg:border-border lg:bg-card lg:text-foreground">
+      <div className="flex h-20 items-center justify-center border-b border-border px-6">
         <Image
           src="/logo-icon.png"
           alt={siteConfig.name}
-          width={56}
-          height={56}
-          className="h-14 w-14 object-contain"
+          width={72}
+          height={72}
+          className="h-[72px] w-[72px] object-contain"
         />
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <AdminNavLinks role={role} tone="dark" />
+        <AdminNavLinks role={role} />
       </div>
 
-      <div className="border-t border-ivory/10 p-4">
+      <div className="border-t border-border p-4">
         <Link
           href="/home"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs text-ivory/50 hover:text-ivory/80"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
           <ExternalLink className="h-3 w-3" />
           View Website

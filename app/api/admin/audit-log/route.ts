@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { AuditLog } from "@/models/AuditLog";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
-import { apiSuccess, apiError } from "@/lib/api/response";
+import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 export async function GET(request: NextRequest): Promise<Response> {
   const auth = await requireApiRole(ADMIN_ROLES);
@@ -16,11 +16,15 @@ export async function GET(request: NextRequest): Promise<Response> {
     return apiError("entityType and entityId are required", 400);
   }
 
-  await connectToDatabase();
-  const entries = await AuditLog.find({ entityType, entityId })
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .lean();
+  try {
+    await connectToDatabase();
+    const entries = await AuditLog.find({ entityType, entityId })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
 
-  return apiSuccess({ entries });
+    return apiSuccess({ entries });
+  } catch (error) {
+    return apiErrorFromUnknown(error);
+  }
 }

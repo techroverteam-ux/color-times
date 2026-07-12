@@ -22,7 +22,7 @@ export default async function AdminCustomerDetailPage({
 
   const [customer, bookings] = await Promise.all([
     User.findById(id).select("name email phone fatherName addresses isActive createdAt").lean(),
-    Booking.find({ customer: id }).populate("product", "name").sort({ createdAt: -1 }).lean(),
+    Booking.find({ customer: id }).populate("items.product", "name").sort({ createdAt: -1 }).lean(),
   ]);
 
   if (!customer) {
@@ -81,7 +81,10 @@ export default async function AdminCustomerDetailPage({
                     <tr key={String(booking._id)} className="border-b border-border last:border-0">
                       <td className="px-4 py-3 font-medium">{booking.bookingNumber}</td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {(booking.product as unknown as { name: string } | null)?.name ?? "—"}
+                        {booking.items
+                          .map((item) => (item.product as unknown as { name: string } | null)?.name)
+                          .filter(Boolean)
+                          .join(", ") || "—"}
                       </td>
                       <td className="px-4 py-3">
                         &#8377;{booking.totalAmount.toLocaleString("en-IN")}

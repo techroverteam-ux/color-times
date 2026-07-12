@@ -14,11 +14,9 @@ function isActive(pathname: string, href: string): boolean {
 export function AdminNavLinks({
   role,
   onNavigate,
-  tone = "dark",
 }: {
   role: UserRole;
   onNavigate?: () => void;
-  tone?: "dark" | "light";
 }) {
   const pathname = usePathname();
   const groups = groupedNavItemsForRole(role);
@@ -27,12 +25,7 @@ export function AdminNavLinks({
     <nav className="flex-1 space-y-5 px-3 py-4">
       {groups.map((group) => (
         <div key={group.label}>
-          <p
-            className={cn(
-              "px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider",
-              tone === "dark" ? "text-ivory/40" : "text-muted-foreground"
-            )}
-          >
+          <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
             {group.label}
           </p>
           <div className="space-y-0.5">
@@ -46,17 +39,13 @@ export function AdminNavLinks({
                   className={cn(
                     "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                     active
-                      ? tone === "dark"
-                        ? "bg-ivory/10 font-medium text-gold"
-                        : "bg-secondary font-medium text-accent-foreground"
-                      : tone === "dark"
-                        ? "text-ivory/70 hover:bg-ivory/5 hover:text-ivory"
-                        : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                      ? "bg-primary/10 font-semibold text-primary"
+                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
                   )}
                 >
                   <span
                     className={cn(
-                      "absolute left-0 h-5 w-[3px] rounded-full bg-gold transition-opacity",
+                      "absolute left-0 h-5 w-[3px] rounded-full bg-primary transition-opacity",
                       active ? "opacity-100" : "opacity-0"
                     )}
                   />

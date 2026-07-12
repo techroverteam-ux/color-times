@@ -87,7 +87,7 @@ export default async function AdminDashboardPage() {
                         {booking.customer?.name ?? "Unknown customer"}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {booking.product?.name ?? "Unknown product"}
+                        {booking.productSummary}
                       </p>
                     </div>
                     <BookingStatusBadge status={booking.status as BookingStatus} />

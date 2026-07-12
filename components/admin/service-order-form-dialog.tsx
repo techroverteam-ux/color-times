@@ -63,6 +63,7 @@ function toDateInputValue(iso: string): string {
 const EMPTY_VALUES: ServiceOrderInput = {
   serviceType: "dry_clean",
   product: "",
+  booking: "",
   description: "",
   cost: 0,
   assignedTo: "",
@@ -71,16 +72,24 @@ const EMPTY_VALUES: ServiceOrderInput = {
   notes: "",
 };
 
+export interface ServiceOrderInitialValues {
+  product: string;
+  booking: string;
+  description?: string;
+}
+
 export function ServiceOrderFormDialog({
   open,
   onOpenChange,
   products,
   editingOrder,
+  initialValues,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   products: ProductOption[];
   editingOrder: ServiceOrderRow | null;
+  initialValues?: ServiceOrderInitialValues | null;
 }) {
   const queryClient = useQueryClient();
 
@@ -91,22 +100,31 @@ export function ServiceOrderFormDialog({
 
   useEffect(() => {
     if (open) {
-      form.reset(
-        editingOrder
-          ? {
-              serviceType: editingOrder.serviceType,
-              product: editingOrder.product?._id ?? "",
-              description: editingOrder.description,
-              cost: editingOrder.cost,
-              assignedTo: editingOrder.assignedTo ?? "",
-              sentDate: toDateInputValue(editingOrder.sentDate),
-              expectedReturnDate: toDateInputValue(editingOrder.expectedReturnDate),
-              notes: editingOrder.notes ?? "",
-            }
-          : EMPTY_VALUES
-      );
+      if (editingOrder) {
+        form.reset({
+          serviceType: editingOrder.serviceType,
+          product: editingOrder.product?._id ?? "",
+          description: editingOrder.description,
+          cost: editingOrder.cost,
+          assignedTo: editingOrder.assignedTo ?? "",
+          sentDate: toDateInputValue(editingOrder.sentDate),
+          expectedReturnDate: toDateInputValue(editingOrder.expectedReturnDate),
+          notes: editingOrder.notes ?? "",
+        });
+      } else if (initialValues) {
+        form.reset({
+          ...EMPTY_VALUES,
+          product: initialValues.product,
+          booking: initialValues.booking,
+          description: initialValues.description ?? EMPTY_VALUES.description,
+        });
+      } else {
+        form.reset(EMPTY_VALUES);
+      }
     }
-  }, [open, editingOrder, form]);
+  }, [open, editingOrder, initialValues, form]);
+
+  const isProductLocked = !editingOrder && Boolean(initialValues);
 
   const productValue = form.watch("product");
   const serviceTypeValue = form.watch("serviceType");
@@ -206,9 +224,10 @@ export function ServiceOrderFormDialog({
                   <Select
                     value={productValue}
                     onValueChange={(value) => form.setValue("product", value ?? "")}
+                    disabled={isProductLocked}
                   >
                     <FormControl>
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger className="w-full" disabled={isProductLocked}>
                         <SelectValue placeholder="Select a product">
                           {() =>
                             selectedProduct

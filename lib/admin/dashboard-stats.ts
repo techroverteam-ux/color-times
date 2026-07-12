@@ -41,7 +41,7 @@ export interface DashboardStats {
     totalAmount: number;
     createdAt: string;
     customer: { name: string } | null;
-    product: { name: string } | null;
+    productSummary: string;
   }[];
   monthlyRevenue: { label: string; revenue: number; bookings: number }[];
 }
@@ -88,7 +88,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     ]),
     Booking.find()
       .populate("customer", "name")
-      .populate("product", "name")
+      .populate("items.product", "name")
       .sort({ createdAt: -1 })
       .limit(5)
       .lean(),
@@ -127,9 +127,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       customer: booking.customer
         ? { name: (booking.customer as unknown as { name: string }).name }
         : null,
-      product: booking.product
-        ? { name: (booking.product as unknown as { name: string }).name }
-        : null,
+      productSummary:
+        booking.items
+          .map((item) => (item.product as unknown as { name: string } | null)?.name)
+          .filter(Boolean)
+          .join(", ") || "Unknown product",
     })),
     monthlyRevenue: monthlyRevenue.map((entry) => ({
       label: new Date(entry._id.year, entry._id.month - 1).toLocaleDateString("en-IN", {
@@ -193,10 +195,11 @@ export async function getDashboardAnalytics(
           ...(hasRangeFilter ? { createdAt: createdAtFilter } : {}),
         },
       },
+      { $unwind: "$items" },
       {
         $lookup: {
           from: Product.collection.name,
-          localField: "product",
+          localField: "items.product",
           foreignField: "_id",
           as: "productDoc",
         },
@@ -214,7 +217,7 @@ export async function getDashboardAnalytics(
       {
         $group: {
           _id: "$categoryDoc.name",
-          revenue: { $sum: "$totalAmount" },
+          revenue: { $sum: "$items.rentalFee" },
           bookings: { $sum: 1 },
         },
       },
@@ -227,7 +230,14 @@ export async function getDashboardAnalytics(
           ...(hasRangeFilter ? { createdAt: createdAtFilter } : {}),
         },
       },
-      { $group: { _id: "$product", bookings: { $sum: 1 }, revenue: { $sum: "$totalAmount" } } },
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.product",
+          bookings: { $sum: 1 },
+          revenue: { $sum: "$items.rentalFee" },
+        },
+      },
       { $sort: { bookings: -1 } },
       { $limit: 5 },
       {

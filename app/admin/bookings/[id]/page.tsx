@@ -20,7 +20,7 @@ export default async function BookingDetailPage({
 
   const booking = await Booking.findById(id)
     .populate("customer", "name email phone")
-    .populate("product", "name images sku")
+    .populate("items.product", "name images sku")
     .lean();
 
   if (!booking) {
@@ -48,18 +48,23 @@ export default async function BookingDetailPage({
                 phone: (booking.customer as unknown as { phone?: string }).phone,
               }
             : null,
-          product: booking.product
-            ? {
-                name: (booking.product as unknown as { name: string }).name,
-                images: (booking.product as unknown as { images: string[] }).images,
-                sku: (booking.product as unknown as { sku: string }).sku,
-              }
-            : null,
-          size: booking.size,
+          items: booking.items.map((item) => ({
+            product: item.product
+              ? {
+                  _id: String((item.product as unknown as { _id: unknown })._id),
+                  name: (item.product as unknown as { name: string }).name,
+                  images: (item.product as unknown as { images: string[] }).images,
+                  sku: (item.product as unknown as { sku: string }).sku,
+                }
+              : null,
+            size: item.size,
+            quantity: item.quantity,
+            pricePerDay: item.pricePerDay,
+            rentalFee: item.rentalFee,
+          })),
           rentalStartDate: booking.rentalStartDate.toISOString(),
           rentalEndDate: booking.rentalEndDate.toISOString(),
           eventDate: booking.eventDate.toISOString(),
-          rentalFee: booking.rentalFee,
           securityDeposit: booking.securityDeposit,
           totalAmount: booking.totalAmount,
           deliveryAddress: booking.deliveryAddress,

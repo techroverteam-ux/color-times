@@ -20,7 +20,7 @@ export default async function NewInvoicePage() {
       .lean(),
     Booking.find({ status: { $in: ["confirmed", "in_use", "returned"] } })
       .populate("customer", "name")
-      .populate("product", "name")
+      .populate("items.product", "name")
       .sort({ createdAt: -1 })
       .limit(100)
       .lean(),
@@ -51,10 +51,14 @@ export default async function NewInvoicePage() {
         bookings={bookings.map((booking) => ({
           _id: String(booking._id),
           bookingNumber: booking.bookingNumber,
-          rentalFee: booking.rentalFee,
+          rentalFee: booking.items.reduce((sum, item) => sum + item.rentalFee, 0),
           securityDeposit: booking.securityDeposit,
           customerName: (booking.customer as unknown as { name: string } | null)?.name ?? "—",
-          productName: (booking.product as unknown as { name: string } | null)?.name ?? "—",
+          productName:
+            booking.items
+              .map((item) => (item.product as unknown as { name: string } | null)?.name)
+              .filter(Boolean)
+              .join(", ") || "—",
         }))}
       />
     </div>

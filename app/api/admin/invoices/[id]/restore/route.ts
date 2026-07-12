@@ -4,7 +4,7 @@ import { Invoice } from "@/models/Invoice";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
-import { apiSuccess, apiError } from "@/lib/api/response";
+import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 export async function POST(
   request: NextRequest,
@@ -13,21 +13,25 @@ export async function POST(
   const auth = await requireApiRole(ADMIN_ROLES);
   if ("error" in auth) return auth.error;
 
-  const { id } = await params;
-  await connectToDatabase();
+  try {
+    const { id } = await params;
+    await connectToDatabase();
 
-  const invoice = await Invoice.findByIdAndUpdate(id, { deletedAt: null }, { returnDocument: "after" });
+    const invoice = await Invoice.findByIdAndUpdate(id, { deletedAt: null }, { returnDocument: "after" });
 
-  if (!invoice) {
-    return apiError("Invoice not found", 404);
+    if (!invoice) {
+      return apiError("Invoice not found", 404);
+    }
+
+    await recordAuditLog({
+      entityType: "Invoice",
+      entityId: id,
+      action: "restore",
+      actor: auth.user,
+    });
+
+    return apiSuccess({ invoice });
+  } catch (error) {
+    return apiErrorFromUnknown(error);
   }
-
-  await recordAuditLog({
-    entityType: "Invoice",
-    entityId: id,
-    action: "restore",
-    actor: auth.user,
-  });
-
-  return apiSuccess({ invoice });
 }

@@ -15,39 +15,51 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const invoice = await Invoice.findById(id).populate("customer", "name email phone").lean();
-  if (!invoice || invoice.deletedAt) {
-    return new Response("Not found", { status: 404 });
+    const invoice = await Invoice.findById(id).populate("customer", "name email phone").lean();
+    if (!invoice || invoice.deletedAt) {
+      return new Response("Not found", { status: 404 });
+    }
+
+    const customer = invoice.customer as unknown as {
+      name: string;
+      email: string;
+      phone?: string;
+    } | null;
+    if (!customer) {
+      return new Response("This invoice's customer record is missing.", { status: 422 });
+    }
+
+    const buffer = await generateInvoicePdfBuffer({
+      invoiceNumber: invoice.invoiceNumber,
+      status: invoice.status,
+      createdAt: invoice.createdAt,
+      dueDate: invoice.dueDate,
+      customer: { name: customer.name, email: customer.email, phone: customer.phone },
+      lineItems: invoice.lineItems,
+      subtotal: invoice.subtotal,
+      discountAmount: invoice.discountAmount,
+      taxRate: invoice.taxRate,
+      taxAmount: invoice.taxAmount,
+      securityDeposit: invoice.securityDeposit,
+      total: invoice.total,
+      amountPaid: invoice.amountPaid,
+      amountDue: invoice.amountDue,
+      payments: invoice.payments,
+      notes: invoice.notes,
+    });
+
+    return new Response(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="${invoice.invoiceNumber}.pdf"`,
+        "Cache-Control": "private, max-age=0, no-store",
+      },
+    });
+  } catch (error) {
+    console.error("Failed to generate invoice PDF:", error);
+    return new Response("Unable to generate this invoice's PDF right now.", { status: 500 });
   }
-
-  const customer = invoice.customer as unknown as { name: string; email: string; phone?: string };
-
-  const buffer = await generateInvoicePdfBuffer({
-    invoiceNumber: invoice.invoiceNumber,
-    status: invoice.status,
-    createdAt: invoice.createdAt,
-    dueDate: invoice.dueDate,
-    customer: { name: customer.name, email: customer.email, phone: customer.phone },
-    lineItems: invoice.lineItems,
-    subtotal: invoice.subtotal,
-    discountAmount: invoice.discountAmount,
-    taxRate: invoice.taxRate,
-    taxAmount: invoice.taxAmount,
-    securityDeposit: invoice.securityDeposit,
-    total: invoice.total,
-    amountPaid: invoice.amountPaid,
-    amountDue: invoice.amountDue,
-    payments: invoice.payments,
-    notes: invoice.notes,
-  });
-
-  return new Response(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${invoice.invoiceNumber}.pdf"`,
-      "Cache-Control": "private, max-age=0, no-store",
-    },
-  });
 }

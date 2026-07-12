@@ -16,6 +16,12 @@ export function apiErrorFromUnknown(error: unknown): NextResponse {
   }
 
   if (error instanceof Error) {
+    if (error.name === "CastError") {
+      return apiError("Invalid ID", 400);
+    }
+    if (error.name === "ValidationError") {
+      return apiError(error.message, 422);
+    }
     if (error.message.includes("E11000")) {
       return apiError("An account with this email already exists", 409);
     }

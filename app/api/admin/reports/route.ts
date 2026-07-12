@@ -13,7 +13,7 @@ import {
   buildDateFilter,
   type DateRangePreset,
 } from "@/lib/admin/date-ranges";
-import { apiSuccess, apiError } from "@/lib/api/response";
+import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 const REVENUE_STATUSES = ["confirmed", "in_use", "returned"];
 
@@ -125,7 +125,7 @@ async function buildBookingsReport(
     Booking.countDocuments({ ...filter, status: "in_use" }),
     Booking.find(filter)
       .populate("customer", "name")
-      .populate("product", "name")
+      .populate("items.product", "name")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -139,7 +139,11 @@ async function buildBookingsReport(
     _id: String(b._id),
     bookingNumber: b.bookingNumber,
     customer: (b.customer as unknown as { name: string } | null)?.name ?? "—",
-    product: (b.product as unknown as { name: string } | null)?.name ?? "—",
+    product:
+      b.items
+        .map((item) => (item.product as unknown as { name: string } | null)?.name)
+        .filter(Boolean)
+        .join(", ") || "—",
     status: b.status,
     totalAmount: b.totalAmount,
     rentalStartDate: b.rentalStartDate.toISOString(),
@@ -306,50 +310,54 @@ export async function GET(request: NextRequest): Promise<Response> {
   const auth = await requireApiRole(ADMIN_ROLES);
   if ("error" in auth) return auth.error;
 
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
 
-  const searchParams = request.nextUrl.searchParams;
-  const type = searchParams.get("type") ?? "products";
-  const rangePreset = (searchParams.get("range") ?? "month") as DateRangePreset;
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
-  const status = searchParams.get("status");
-  const serviceType = searchParams.get("serviceType");
-  const all = searchParams.get("all") === "true";
-  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
-  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20")));
+    const searchParams = request.nextUrl.searchParams;
+    const type = searchParams.get("type") ?? "products";
+    const rangePreset = (searchParams.get("range") ?? "month") as DateRangePreset;
+    const from = searchParams.get("from");
+    const to = searchParams.get("to");
+    const status = searchParams.get("status");
+    const serviceType = searchParams.get("serviceType");
+    const all = searchParams.get("all") === "true";
+    const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? "20")));
 
-  const range = resolveDateRange(rangePreset, from, to);
-  const dateFilter = buildDateFilter("createdAt", range);
+    const range = resolveDateRange(rangePreset, from, to);
+    const dateFilter = buildDateFilter("createdAt", range);
 
-  let report: { summary: Record<string, unknown>; items: unknown[]; pagination: Pagination };
+    let report: { summary: Record<string, unknown>; items: unknown[]; pagination: Pagination };
 
-  switch (type) {
-    case "products":
-      report = await buildProductsReport(dateFilter, status, page, pageSize, all);
-      break;
-    case "bookings":
-      report = await buildBookingsReport(dateFilter, status, page, pageSize, all);
-      break;
-    case "invoices":
-      report = await buildInvoicesReport(dateFilter, status, page, pageSize, all);
-      break;
-    case "customers":
-      report = await buildCustomersReport(dateFilter, page, pageSize, all);
-      break;
-    case "services":
-      report = await buildServicesReport(dateFilter, status, serviceType, page, pageSize, all);
-      break;
-    default:
-      return apiError("Invalid report type", 400);
+    switch (type) {
+      case "products":
+        report = await buildProductsReport(dateFilter, status, page, pageSize, all);
+        break;
+      case "bookings":
+        report = await buildBookingsReport(dateFilter, status, page, pageSize, all);
+        break;
+      case "invoices":
+        report = await buildInvoicesReport(dateFilter, status, page, pageSize, all);
+        break;
+      case "customers":
+        report = await buildCustomersReport(dateFilter, page, pageSize, all);
+        break;
+      case "services":
+        report = await buildServicesReport(dateFilter, status, serviceType, page, pageSize, all);
+        break;
+      default:
+        return apiError("Invalid report type", 400);
+    }
+
+    return apiSuccess({
+      ...report,
+      range: {
+        from: range.from ? range.from.toISOString() : null,
+        to: range.to ? range.to.toISOString() : null,
+        label: range.label,
+      },
+    });
+  } catch (error) {
+    return apiErrorFromUnknown(error);
   }
-
-  return apiSuccess({
-    ...report,
-    range: {
-      from: range.from ? range.from.toISOString() : null,
-      to: range.to ? range.to.toISOString() : null,
-      label: range.label,
-    },
-  });
 }

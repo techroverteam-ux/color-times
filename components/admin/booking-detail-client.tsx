@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Bell, Loader2 } from "lucide-react";
+import { Bell, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -17,6 +17,10 @@ import {
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { ReturnBookingDialog } from "@/components/admin/return-booking-dialog";
 import { AuditLogList } from "@/components/admin/audit-log-list";
+import {
+  ServiceOrderFormDialog,
+  type ServiceOrderInitialValues,
+} from "@/components/admin/service-order-form-dialog";
 import { formatDate } from "@/lib/utils";
 import type { BookingStatus, ReturnCondition } from "@/models/Booking";
 
@@ -38,17 +42,23 @@ const RETURN_CONDITION_LABELS: Record<ReturnCondition, string> = {
   missing_items: "Missing items",
 };
 
+interface BookingItemDetail {
+  product: { _id: string; name: string; images: string[]; sku: string } | null;
+  size: string;
+  quantity: number;
+  pricePerDay: number;
+  rentalFee: number;
+}
+
 interface BookingDetail {
   _id: string;
   bookingNumber: string;
   status: BookingStatus;
   customer: { name: string; email: string; phone?: string } | null;
-  product: { name: string; images: string[]; sku: string } | null;
-  size: string;
+  items: BookingItemDetail[];
   rentalStartDate: string;
   rentalEndDate: string;
   eventDate: string;
-  rentalFee: number;
   securityDeposit: number;
   totalAmount: number;
   deliveryAddress: string;
@@ -73,6 +83,8 @@ async function fetchBooking(id: string): Promise<BookingDetail> {
 export function BookingDetailClient({ initialBooking }: { initialBooking: BookingDetail }) {
   const queryClient = useQueryClient();
   const [returnDialogOpen, setReturnDialogOpen] = useState(false);
+  const [dryCleanValues, setDryCleanValues] = useState<ServiceOrderInitialValues | null>(null);
+  const [dryCleanDialogOpen, setDryCleanDialogOpen] = useState(false);
 
   const { data: booking = initialBooking } = useQuery({
     queryKey: ["admin", "booking", initialBooking._id],
@@ -182,23 +194,49 @@ export function BookingDetailClient({ initialBooking }: { initialBooking: Bookin
             </div>
 
             <div className="rounded-lg border border-border bg-card p-6">
-              <h2 className="font-heading text-lg">Dress</h2>
-              <div className="mt-2 flex items-center gap-3">
-                {booking.product?.images?.[0] && (
-                  <Image
-                    src={booking.product.images[0]}
-                    alt={booking.product.name}
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 rounded-md object-cover"
-                  />
-                )}
-                <div>
-                  <p className="text-sm font-medium">{booking.product?.name ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {booking.product?.sku} &middot; Size {booking.size}
-                  </p>
-                </div>
+              <h2 className="font-heading text-lg">
+                {booking.items.length > 1 ? `Dresses (${booking.items.length})` : "Dress"}
+              </h2>
+              <div className="mt-2 space-y-3">
+                {booking.items.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {item.product?.images?.[0] && (
+                        <Image
+                          src={item.product.images[0]}
+                          alt={item.product.name}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 rounded-md object-cover"
+                        />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{item.product?.name ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {item.product?.sku} &middot; Size {item.size}
+                          {item.quantity > 1 && ` ×${item.quantity}`}
+                        </p>
+                      </div>
+                    </div>
+                    {booking.status === "returned" && item.product && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setDryCleanValues({
+                            product: item.product!._id,
+                            booking: booking._id,
+                            description: `Post-return dry clean for booking ${booking.bookingNumber}`,
+                          });
+                          setDryCleanDialogOpen(true);
+                        }}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Send to Dry Clean
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -223,10 +261,14 @@ export function BookingDetailClient({ initialBooking }: { initialBooking: Bookin
             <div className="rounded-lg border border-border bg-secondary/40 p-6">
               <h2 className="font-heading text-lg">Billing</h2>
               <div className="mt-2 space-y-1 text-sm">
-                <p className="flex justify-between">
-                  <span className="text-muted-foreground">Rental Fee</span>
-                  <span>{formatCurrency(booking.rentalFee)}</span>
-                </p>
+                {booking.items.map((item, index) => (
+                  <p key={index} className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {item.product?.name ?? "Item"} rental fee
+                    </span>
+                    <span>{formatCurrency(item.rentalFee)}</span>
+                  </p>
+                ))}
                 <p className="flex justify-between">
                   <span className="text-muted-foreground">Security Deposit</span>
                   <span>{formatCurrency(booking.securityDeposit)}</span>
@@ -286,6 +328,20 @@ export function BookingDetailClient({ initialBooking }: { initialBooking: Bookin
         bookingId={booking._id}
         open={returnDialogOpen}
         onOpenChange={setReturnDialogOpen}
+      />
+
+      <ServiceOrderFormDialog
+        open={dryCleanDialogOpen}
+        onOpenChange={setDryCleanDialogOpen}
+        products={booking.items
+          .filter((item) => item.product)
+          .map((item) => ({
+            _id: item.product!._id,
+            name: item.product!.name,
+            sku: item.product!.sku,
+          }))}
+        editingOrder={null}
+        initialValues={dryCleanValues}
       />
     </div>
   );

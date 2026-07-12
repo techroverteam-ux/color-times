@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BookingQuickViewDialog } from "@/components/admin/booking-quick-view-dialog";
 import { cn } from "@/lib/utils";
 import type { BookingStatus } from "@/models/Booking";
 
@@ -14,7 +15,7 @@ interface CalendarBooking {
   rentalStartDate: string;
   rentalEndDate: string;
   customer: { name: string } | null;
-  product: { name: string } | null;
+  items: { product: { name: string } | null }[];
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -39,15 +40,19 @@ async function fetchCalendarBookings(from: Date, to: Date): Promise<CalendarBook
 function DayChip({
   type,
   booking,
+  onSelect,
 }: {
   type: "pickup" | "return";
   booking: CalendarBooking;
+  onSelect: (id: string) => void;
 }) {
   const isPickup = type === "pickup";
   return (
-    <div
+    <button
+      type="button"
+      onClick={() => onSelect(booking._id)}
       className={cn(
-        "flex items-center gap-1 truncate rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+        "flex w-full items-center gap-1 truncate rounded-full border px-1.5 py-0.5 text-left text-[10px] font-medium transition-opacity hover:opacity-80",
         isPickup
           ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
           : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
@@ -60,7 +65,7 @@ function DayChip({
         <LogIn className="h-2.5 w-2.5 shrink-0" />
       )}
       <span className="truncate">{booking.customer?.name ?? booking.bookingNumber}</span>
-    </div>
+    </button>
   );
 }
 
@@ -69,6 +74,7 @@ export function BookingCalendar() {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   const monthStart = monthCursor;
   const monthEnd = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0);
@@ -105,6 +111,7 @@ export function BookingCalendar() {
   const todayKey = toDateKey(new Date());
 
   return (
+    <>
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <h2 className="font-heading text-xl">
@@ -197,7 +204,12 @@ export function BookingCalendar() {
               </p>
               <div className="space-y-1">
                 {visibleChips.map(({ type, booking }) => (
-                  <DayChip key={`${type}-${booking._id}`} type={type} booking={booking} />
+                  <DayChip
+                    key={`${type}-${booking._id}`}
+                    type={type}
+                    booking={booking}
+                    onSelect={setSelectedBookingId}
+                  />
                 ))}
                 {overflowCount > 0 && (
                   <p className="px-1.5 text-[10px] font-medium text-muted-foreground">
@@ -219,5 +231,11 @@ export function BookingCalendar() {
         </span>
       </div>
     </div>
+
+    <BookingQuickViewDialog
+      bookingId={selectedBookingId}
+      onOpenChange={(open) => !open && setSelectedBookingId(null)}
+    />
+    </>
   );
 }

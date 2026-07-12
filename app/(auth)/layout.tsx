@@ -18,10 +18,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <Image
             src="/logo.png"
             alt={siteConfig.name}
-            width={64}
-            height={64}
+            width={96}
+            height={96}
             priority
-            className="h-14 w-14 object-contain sm:h-16 sm:w-16"
+            className="h-20 w-20 object-contain sm:h-24 sm:w-24"
           />
           <span className="font-heading text-xl tracking-wide">{siteConfig.name}</span>
         </div>
@@ -31,9 +31,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Image
           src="/logo.png"
           alt={siteConfig.name}
-          width={160}
-          height={160}
-          className="mt-8 h-28 w-28 object-contain opacity-90 sm:h-32 sm:w-32"
+          width={200}
+          height={200}
+          className="mt-8 h-36 w-36 object-contain opacity-90 sm:h-40 sm:w-40"
         />
       </div>
     </div>
