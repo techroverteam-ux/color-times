@@ -208,7 +208,24 @@ export function BookingsClient({
               ))}
             </SelectContent>
           </Select>
-          <div className="flex shrink-0 rounded-md border border-border p-0.5">
+          <div className="flex shrink-0 rounded-md border border-border p-0.5 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setView(view === "calendar" ? "card" : "calendar")}
+              className="flex items-center gap-1.5 rounded px-2.5 py-1.5 text-sm text-muted-foreground"
+            >
+              {view === "calendar" ? (
+                <>
+                  <List className="h-4 w-4" /> List
+                </>
+              ) : (
+                <>
+                  <CalendarDays className="h-4 w-4" /> Calendar
+                </>
+              )}
+            </button>
+          </div>
+          <div className="hidden shrink-0 rounded-md border border-border p-0.5 lg:flex">
             <button
               type="button"
               onClick={() => setView("table")}

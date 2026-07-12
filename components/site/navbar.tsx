@@ -40,6 +40,8 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const overHero = pathname === "/home" && !isScrolled;
+
   return (
     <header
       className={cn(
@@ -57,7 +59,12 @@ export function Navbar() {
             className="h-11 w-11 object-contain"
             priority
           />
-          <span className="font-heading text-xl tracking-wide">
+          <span
+            className={cn(
+              "font-heading text-xl tracking-wide transition-colors",
+              overHero ? "text-ivory" : "text-foreground"
+            )}
+          >
             {siteConfig.shortName}
           </span>
         </Link>
@@ -73,8 +80,14 @@ export function Navbar() {
               <Link
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-1 px-4 py-2 text-sm font-medium tracking-wide transition-colors hover:text-accent",
-                  pathname === item.href ? "text-accent" : "text-foreground/80"
+                  "flex items-center gap-1 px-4 py-2 text-sm font-medium tracking-wide transition-colors",
+                  overHero
+                    ? pathname === item.href
+                      ? "text-gold"
+                      : "text-ivory/85 hover:text-gold"
+                    : pathname === item.href
+                      ? "text-accent"
+                      : "text-foreground/80 hover:text-accent"
                 )}
               >
                 {item.label}
@@ -109,7 +122,13 @@ export function Navbar() {
         </ul>
 
         <div className="hidden lg:flex items-center gap-2">
-          <ButtonLink variant="ghost" size="icon" aria-label="Wishlist" href="/wishlist">
+          <ButtonLink
+            variant="ghost"
+            size="icon"
+            aria-label="Wishlist"
+            href="/wishlist"
+            className={overHero ? "text-ivory hover:bg-ivory/10 hover:text-ivory" : undefined}
+          >
             <Heart className="h-5 w-5" />
           </ButtonLink>
           <ButtonLink
@@ -117,6 +136,7 @@ export function Navbar() {
             size="icon"
             aria-label="Account"
             href={user ? "/account" : "/login"}
+            className={overHero ? "text-ivory hover:bg-ivory/10 hover:text-ivory" : undefined}
           >
             <User className="h-5 w-5" />
           </ButtonLink>
@@ -128,7 +148,14 @@ export function Navbar() {
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger
             className="lg:hidden"
-            render={<Button variant="ghost" size="icon" aria-label="Open menu" />}
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Open menu"
+                className={overHero ? "text-ivory hover:bg-ivory/10 hover:text-ivory" : undefined}
+              />
+            }
           >
             <Menu className="h-6 w-6" />
           </SheetTrigger>

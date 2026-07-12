@@ -24,7 +24,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero />
+      <Hero image={dresses[0]?.image} />
       <Stats />
       <FeaturedCollections categories={categories} />
       <WhyChooseUs />
@@ -33,7 +33,7 @@ export default async function HomePage() {
       <Testimonials />
       <GalleryPreviewSection />
       <FaqSection />
-      <CtaBanner />
+      <CtaBanner image={dresses[dresses.length - 1]?.image} />
     </>
   );
 }

@@ -14,6 +14,37 @@ export interface CategorySummary {
   heroImage: string;
 }
 
+function isPlaceholderImage(url: string): boolean {
+  return !url || url.startsWith("/images/placeholder/");
+}
+
+async function withRealHeroImages(categories: CategorySummary[]): Promise<CategorySummary[]> {
+  const needsFallback = categories.filter((category) => isPlaceholderImage(category.heroImage));
+  if (needsFallback.length === 0) return categories;
+
+  const products = await Product.find({
+    category: { $in: needsFallback.map((category) => category._id) },
+    ...PUBLICLY_VISIBLE_FILTER,
+  })
+    .select("category images isFeatured")
+    .sort({ isFeatured: -1, createdAt: -1 })
+    .lean();
+
+  const imageByCategory = new Map<string, string>();
+  for (const product of products) {
+    const categoryId = String(product.category);
+    if (!imageByCategory.has(categoryId) && product.images[0]) {
+      imageByCategory.set(categoryId, product.images[0]);
+    }
+  }
+
+  return categories.map((category) =>
+    isPlaceholderImage(category.heroImage) && imageByCategory.has(category._id)
+      ? { ...category, heroImage: imageByCategory.get(category._id)! }
+      : category
+  );
+}
+
 function toDressListing(product: {
   _id: unknown;
   name: string;
@@ -49,13 +80,15 @@ function toDressListing(product: {
 export async function getAllCategories(): Promise<CategorySummary[]> {
   await connectToDatabase();
   const categories = await Category.find().sort({ displayOrder: 1, name: 1 }).lean();
-  return categories.map((category) => ({
-    _id: String(category._id),
-    name: category.name,
-    slug: category.slug,
-    description: category.description,
-    heroImage: category.heroImage,
-  }));
+  return withRealHeroImages(
+    categories.map((category) => ({
+      _id: String(category._id),
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      heroImage: category.heroImage,
+    }))
+  );
 }
 
 export async function getFeaturedCategories(limit = 6): Promise<CategorySummary[]> {
@@ -64,13 +97,15 @@ export async function getFeaturedCategories(limit = 6): Promise<CategorySummary[
     .sort({ displayOrder: 1 })
     .limit(limit)
     .lean();
-  return categories.map((category) => ({
-    _id: String(category._id),
-    name: category.name,
-    slug: category.slug,
-    description: category.description,
-    heroImage: category.heroImage,
-  }));
+  return withRealHeroImages(
+    categories.map((category) => ({
+      _id: String(category._id),
+      name: category.name,
+      slug: category.slug,
+      description: category.description,
+      heroImage: category.heroImage,
+    }))
+  );
 }
 
 export async function getCategoryBySlug(slug: string): Promise<ICategory | null> {

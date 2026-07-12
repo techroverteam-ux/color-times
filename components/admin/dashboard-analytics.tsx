@@ -241,7 +241,34 @@ export function DashboardAnalytics({
       <div className="rounded-lg border border-border bg-card p-5">
         <h2 className="font-heading text-lg">Monthly Trend</h2>
         <p className="mt-1 text-sm text-muted-foreground">Last 12 months</p>
-        <div className="mt-4 overflow-x-auto">
+
+        <div className="mt-4 space-y-3 lg:hidden">
+          {monthlyTrend.length === 0 ? (
+            <p className="py-6 text-center text-muted-foreground">No data yet.</p>
+          ) : (
+            monthlyTrend.map((row) => (
+              <div key={row.label} className="rounded-lg border border-border p-3">
+                <p className="font-medium">{row.label}</p>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Bookings</p>
+                    <p>{row.bookings}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Revenue</p>
+                    <p>{formatCurrency(row.revenue)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">New Customers</p>
+                    <p>{row.newCustomers}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="mt-4 hidden overflow-x-auto lg:block">
           <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
             <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>

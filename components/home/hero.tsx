@@ -7,7 +7,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button-link";
 import { heroSlides } from "@/lib/data/home-content";
 
-export function Hero() {
+export function Hero({ image }: { image?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
@@ -18,7 +18,7 @@ export function Hero() {
     <section ref={ref} className="relative -mt-20 h-[100svh] min-h-[640px] w-full overflow-hidden">
       <motion.div style={{ y }} className="absolute inset-0">
         <Image
-          src={slide.image}
+          src={image ?? slide.image}
           alt="Featured designer dress"
           fill
           priority

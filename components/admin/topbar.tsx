@@ -68,14 +68,17 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
-            <div className="flex h-16 shrink-0 items-center justify-center border-b border-border px-6">
+            <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-border px-6">
               <Image
                 src="/logo-icon.png"
                 alt={siteConfig.name}
-                width={44}
-                height={44}
-                className="h-11 w-11 object-contain"
+                width={36}
+                height={36}
+                className="h-9 w-9 shrink-0 object-contain"
               />
+              <span className="font-heading text-xl tracking-wide text-foreground">
+                {siteConfig.shortName}
+              </span>
             </div>
             <div className="flex-1 overflow-y-auto">
               <AdminNavLinks role={user.role} onNavigate={() => setNavOpen(false)} />

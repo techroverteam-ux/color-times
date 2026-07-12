@@ -49,7 +49,7 @@ export const siteConfig = {
     address: "12 Fashion Street, Bandra West, Mumbai, Maharashtra 400050",
   },
   social: {
-    instagram: "https://instagram.com/colortimesboutique",
+    instagram: "https://www.instagram.com/color_times_boutique/",
     facebook: "https://facebook.com/colortimesboutique",
     pinterest: "https://pinterest.com/colortimesboutique",
   },

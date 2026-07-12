@@ -437,6 +437,7 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
             <p className="text-xs text-muted-foreground">{product.sku}</p>
             <p className="mt-1 text-sm text-accent">
               &#8377;{product.rentalPricePerDay.toLocaleString("en-IN")}
+              <span className="text-muted-foreground">/day</span>
             </p>
             <div className="mt-2 flex gap-1">
               <ButtonLink

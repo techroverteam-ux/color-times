@@ -20,10 +20,12 @@ export function AdminShell({
         <AdminSidebar role={user.role} />
         <div className="flex min-w-0 flex-1 flex-col">
           <AdminTopbar user={user} />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 pb-4 lg:p-8">{children}</main>
-          <div className="pb-20 lg:pb-0">
-            <AdminFooter />
-          </div>
+          <main className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto">
+            <div className="flex-1 p-4 pb-4 lg:p-8">{children}</div>
+            <div className="pb-20 lg:pb-0">
+              <AdminFooter />
+            </div>
+          </main>
         </div>
         <AdminBottomNav />
       </div>

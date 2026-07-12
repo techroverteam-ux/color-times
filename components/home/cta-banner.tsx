@@ -2,11 +2,11 @@ import Image from "next/image";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Reveal } from "@/components/motion/reveal";
 
-export function CtaBanner() {
+export function CtaBanner({ image }: { image?: string }) {
   return (
     <section className="relative overflow-hidden py-28">
       <Image
-        src="/images/placeholder/dresses/dress-12.png"
+        src={image ?? "/images/placeholder/dresses/dress-12.png"}
         alt="Book your appointment"
         fill
         sizes="100vw"
