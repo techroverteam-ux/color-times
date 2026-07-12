@@ -5,7 +5,7 @@ import {
   FolderTree,
   CalendarCheck,
   Users,
-  Receipt,
+  FileText,
   MessageCircle,
   Sparkles,
   BarChart3,
@@ -48,7 +48,7 @@ const NAV_GROUPS_BY_ROLE: { label: string; items: AdminNavItem[] }[] = [
   {
     label: "Billing",
     items: [
-      { label: "Invoices", href: "/admin/invoices", icon: Receipt },
+      { label: "Invoices", href: "/admin/invoices", icon: FileText },
       { label: "Reports", href: "/admin/reports", icon: BarChart3 },
     ],
   },

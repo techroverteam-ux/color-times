@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileDown, FileSpreadsheet, Printer, Table2 } from "lucide-react";
+import { FileDown, FileSpreadsheet, Grid3x3, List, Printer, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -16,7 +16,7 @@ import { StatCard } from "@/components/admin/stat-card";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
 import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
-import { downloadCsv, downloadPdf, downloadExcel } from "@/lib/admin/export";
+import { downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { DATE_RANGE_PRESETS, DATE_RANGE_LABELS, type DateRangePreset } from "@/lib/admin/date-ranges";
 import { formatDate } from "@/lib/utils";
 import type { BookingStatus } from "@/models/Booking";
@@ -246,6 +246,7 @@ export function ReportsClient() {
   const [status, setStatus] = useState("all");
   const [serviceType, setServiceType] = useState("all");
   const [page, setPage] = useState(1);
+  const [layout, setLayout] = useState<"table" | "card">("table");
   const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading } = useQuery({
@@ -292,6 +293,44 @@ export function ReportsClient() {
       setIsExporting(false);
     }
   }
+
+  const cardGrid = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {isLoading && <p className="col-span-full py-10 text-center text-muted-foreground">Loading...</p>}
+      {!isLoading &&
+        (data?.items ?? []).map((row, index) => {
+          const [titleColumn, ...restColumns] = columns;
+          return (
+            <div key={index} className="rounded-lg border border-border bg-card p-4">
+              <p className="font-medium">
+                {titleColumn.render
+                  ? titleColumn.render(row)
+                  : titleColumn.format
+                    ? titleColumn.format(row)
+                    : String(row[titleColumn.key] ?? "—")}
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                {restColumns.map((column) => (
+                  <div key={column.key}>
+                    <p className="text-xs text-muted-foreground">{column.label}</p>
+                    <p>
+                      {column.render
+                        ? column.render(row)
+                        : column.format
+                          ? column.format(row)
+                          : String(row[column.key] ?? "—")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      {!isLoading && data?.items.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">No records found.</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -418,20 +457,26 @@ export function ReportsClient() {
           </Select>
         )}
 
-        <div className="ml-auto flex gap-2">
+        <div className="hidden items-center gap-1 rounded-md border border-border p-1 lg:flex">
           <Button
-            variant="outline"
-            size="sm"
-            disabled={isExporting}
-            onClick={() =>
-              withExportGuard(async () => {
-                const { headers, rows } = await exportRows();
-                downloadCsv(`${reportType}-report`, headers, rows);
-              })
-            }
+            variant={layout === "table" ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => setLayout("table")}
+            aria-label="Table view"
           >
-            <FileSpreadsheet className="h-4 w-4" /> CSV
+            <List className="h-4 w-4" />
           </Button>
+          <Button
+            variant={layout === "card" ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => setLayout("card")}
+            aria-label="Card view"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="ml-auto flex gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -496,42 +541,11 @@ export function ReportsClient() {
         ))}
       </div>
 
-      <div className="space-y-3 lg:hidden">
-        {isLoading && <p className="py-10 text-center text-muted-foreground">Loading...</p>}
-        {!isLoading &&
-          (data?.items ?? []).map((row, index) => {
-            const [titleColumn, ...restColumns] = columns;
-            return (
-              <div key={index} className="rounded-lg border border-border bg-card p-4">
-                <p className="font-medium">
-                  {titleColumn.render
-                    ? titleColumn.render(row)
-                    : titleColumn.format
-                      ? titleColumn.format(row)
-                      : String(row[titleColumn.key] ?? "—")}
-                </p>
-                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-                  {restColumns.map((column) => (
-                    <div key={column.key}>
-                      <p className="text-xs text-muted-foreground">{column.label}</p>
-                      <p>
-                        {column.render
-                          ? column.render(row)
-                          : column.format
-                            ? column.format(row)
-                            : String(row[column.key] ?? "—")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        {!isLoading && data?.items.length === 0 && (
-          <p className="py-10 text-center text-muted-foreground">No records found.</p>
-        )}
-      </div>
+      <div className="lg:hidden">{cardGrid}</div>
 
+      {layout === "card" ? (
+        <div className="hidden lg:block">{cardGrid}</div>
+      ) : (
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
         <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -575,6 +589,7 @@ export function ReportsClient() {
           </tbody>
         </table>
       </div>
+      )}
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">

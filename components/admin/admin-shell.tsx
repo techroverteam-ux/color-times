@@ -3,6 +3,7 @@ import { AdminTopbar } from "@/components/admin/topbar";
 import { AdminBottomNav } from "@/components/admin/bottom-nav";
 import { AdminFooter } from "@/components/admin/admin-footer";
 import { AdminThemeProvider } from "@/components/admin/theme-provider";
+import { SessionRefresher } from "@/components/admin/session-refresher";
 import type { SessionUser } from "@/types/auth";
 
 export function AdminShell({
@@ -14,6 +15,7 @@ export function AdminShell({
 }) {
   return (
     <AdminThemeProvider>
+      <SessionRefresher />
       <div className="flex h-svh overflow-hidden bg-secondary/30">
         <AdminSidebar role={user.role} />
         <div className="flex min-w-0 flex-1 flex-col">

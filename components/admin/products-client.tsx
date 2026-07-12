@@ -11,7 +11,6 @@ import {
   Copy,
   Eye,
   FileDown,
-  FileSpreadsheet,
   Grid3x3,
   List,
   Pencil,
@@ -41,7 +40,7 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ProductQuickAddDialog } from "@/components/admin/product-quick-add-dialog";
 import { ProductImportDialog } from "@/components/admin/product-import-dialog";
 import { ProductDetailDrawer } from "@/components/admin/product-detail-drawer";
-import { downloadCsv, downloadPdf, downloadExcel } from "@/lib/admin/export";
+import { downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { cn } from "@/lib/utils";
 
 interface ProductRow {
@@ -389,13 +388,6 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
     }
   }
 
-  function handleExportCsv() {
-    void withExportGuard(async () => {
-      const rows = await fetchExportRows();
-      downloadCsv("products", exportHeaders, rows);
-    });
-  }
-
   function handleExportExcel() {
     void withExportGuard(async () => {
       const rows = await fetchExportRows();
@@ -577,10 +569,6 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
               onChange={(key, value) => setColumnVisibility((prev) => ({ ...prev, [key]: value }))}
             />
           )}
-          <Button variant="outline" size="sm" disabled={isExporting} onClick={handleExportCsv}>
-            <FileSpreadsheet className="h-4 w-4" />
-            CSV
-          </Button>
           <Button variant="outline" size="sm" disabled={isExporting} onClick={handleExportExcel}>
             <Table2 className="h-4 w-4" />
             Excel

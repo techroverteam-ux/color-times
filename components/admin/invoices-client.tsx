@@ -10,7 +10,8 @@ import {
   ArrowUp,
   ArrowUpDown,
   FileDown,
-  FileSpreadsheet,
+  Grid3x3,
+  List,
   MoreHorizontal,
   Printer,
   Search,
@@ -36,7 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
-import { downloadCsv, downloadPdf, downloadExcel } from "@/lib/admin/export";
+import { downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { formatDate } from "@/lib/utils";
 import type { InvoiceStatus } from "@/models/Invoice";
 
@@ -124,6 +125,7 @@ export function InvoicesClient({
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("all");
   const [view, setView] = useState<"active" | "trash">("active");
+  const [layout, setLayout] = useState<"table" | "card">("table");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -241,6 +243,87 @@ export function InvoicesClient({
     return { headers, rows };
   }
 
+  const cardGrid = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {invoices.map((invoice) => (
+        <div key={invoice._id} className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <Link href={`/admin/invoices/${invoice._id}`} className="font-medium hover:text-accent">
+              {invoice.invoiceNumber}
+            </Link>
+            <InvoiceStatusBadge status={invoice.status} />
+          </div>
+          <p className="mt-2 text-sm">{invoice.customer?.name ?? "—"}</p>
+          <p className="text-xs text-muted-foreground">{invoice.customer?.email}</p>
+          {invoice.booking && (
+            <p className="mt-1 text-xs text-muted-foreground">Booking {invoice.booking.bookingNumber}</p>
+          )}
+          <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p>{formatCurrency(invoice.total)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Paid</p>
+              <p className="text-emerald-700">{formatCurrency(invoice.amountPaid)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Due</p>
+              <p className={invoice.amountDue > 0 ? "text-red-700" : undefined}>
+                {formatCurrency(invoice.amountDue)}
+              </p>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">Due {formatDate(invoice.dueDate)}</p>
+          <div className="mt-3 flex justify-end">
+            {view === "trash" ? (
+              <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate(invoice._id)}>
+                Restore
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                  Actions <MoreHorizontal className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => router.push(`/admin/invoices/${invoice._id}`)}>
+                    View
+                  </DropdownMenuItem>
+                  {invoice.status === "draft" && (
+                    <DropdownMenuItem onClick={() => sendMutation.mutate(invoice._id)}>
+                      Send
+                    </DropdownMenuItem>
+                  )}
+                  {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+                    <DropdownMenuItem
+                      onClick={() => setConfirmState({ type: "cancel", id: invoice._id })}
+                    >
+                      Cancel
+                    </DropdownMenuItem>
+                  )}
+                  {(invoice.status === "draft" || invoice.status === "cancelled") && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setConfirmState({ type: "delete", id: invoice._id })}
+                      >
+                        <Trash2 className="h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+      ))}
+      {invoices.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">No invoices found.</p>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -303,21 +386,26 @@ export function InvoicesClient({
             <SelectItem value="trash">Trash</SelectItem>
           </SelectContent>
         </Select>
+        <div className="hidden items-center gap-1 rounded-md border border-border p-1 lg:flex">
+          <Button
+            variant={layout === "table" ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => setLayout("table")}
+            aria-label="Table view"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={layout === "card" ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => setLayout("card")}
+            aria-label="Card view"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
+        </div>
 
         <div className="ml-auto flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isExporting}
-            onClick={() =>
-              withExportGuard(async () => {
-                const { headers, rows } = await exportRows();
-                downloadCsv("invoices", headers, rows);
-              })
-            }
-          >
-            <FileSpreadsheet className="h-4 w-4" /> CSV
-          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -350,85 +438,11 @@ export function InvoicesClient({
         </div>
       </div>
 
-      <div className="space-y-3 lg:hidden">
-        {invoices.map((invoice) => (
-          <div key={invoice._id} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-start justify-between gap-3">
-              <Link href={`/admin/invoices/${invoice._id}`} className="font-medium hover:text-accent">
-                {invoice.invoiceNumber}
-              </Link>
-              <InvoiceStatusBadge status={invoice.status} />
-            </div>
-            <p className="mt-2 text-sm">{invoice.customer?.name ?? "—"}</p>
-            <p className="text-xs text-muted-foreground">{invoice.customer?.email}</p>
-            {invoice.booking && (
-              <p className="mt-1 text-xs text-muted-foreground">Booking {invoice.booking.bookingNumber}</p>
-            )}
-            <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p>{formatCurrency(invoice.total)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Paid</p>
-                <p className="text-emerald-700">{formatCurrency(invoice.amountPaid)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Due</p>
-                <p className={invoice.amountDue > 0 ? "text-red-700" : undefined}>
-                  {formatCurrency(invoice.amountDue)}
-                </p>
-              </div>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">Due {formatDate(invoice.dueDate)}</p>
-            <div className="mt-3 flex justify-end">
-              {view === "trash" ? (
-                <Button variant="outline" size="sm" onClick={() => restoreMutation.mutate(invoice._id)}>
-                  Restore
-                </Button>
-              ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-                    Actions <MoreHorizontal className="h-4 w-4" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => router.push(`/admin/invoices/${invoice._id}`)}>
-                      View
-                    </DropdownMenuItem>
-                    {invoice.status === "draft" && (
-                      <DropdownMenuItem onClick={() => sendMutation.mutate(invoice._id)}>
-                        Send
-                      </DropdownMenuItem>
-                    )}
-                    {invoice.status !== "paid" && invoice.status !== "cancelled" && (
-                      <DropdownMenuItem
-                        onClick={() => setConfirmState({ type: "cancel", id: invoice._id })}
-                      >
-                        Cancel
-                      </DropdownMenuItem>
-                    )}
-                    {(invoice.status === "draft" || invoice.status === "cancelled") && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => setConfirmState({ type: "delete", id: invoice._id })}
-                        >
-                          <Trash2 className="h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          </div>
-        ))}
-        {invoices.length === 0 && (
-          <p className="py-10 text-center text-muted-foreground">No invoices found.</p>
-        )}
-      </div>
+      <div className="lg:hidden">{cardGrid}</div>
 
+      {layout === "card" ? (
+        <div className="hidden lg:block">{cardGrid}</div>
+      ) : (
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
         <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -547,6 +561,7 @@ export function InvoicesClient({
           </tbody>
         </table>
       </div>
+      )}
 
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">

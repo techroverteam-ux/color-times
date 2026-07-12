@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Copy, KeyRound, Loader2, Pencil, Plus, ShieldOff, Trash2 } from "lucide-react";
+import { Copy, Grid3x3, KeyRound, List, Loader2, Pencil, Plus, ShieldOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +117,7 @@ export function UsersClient({
   const [deleting, setDeleting] = useState<StaffUser | null>(null);
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
+  const [layout, setLayout] = useState<"table" | "card">("table");
 
   const { data: users = initialUsers } = useQuery({
     queryKey: ["admin", "users"],
@@ -239,22 +240,9 @@ export function UsersClient({
     },
   });
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-heading text-2xl">Team</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage staff, admin, and developer accounts.
-          </p>
-        </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="h-4 w-4" /> New Team Member
-        </Button>
-      </div>
-
-      <div className="space-y-3 lg:hidden">
-        {users.map((user) => {
+  const cardGrid = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {users.map((user) => {
           const isSelf = user._id === currentUserId;
           return (
             <div key={user._id} className="rounded-lg border border-border bg-card p-4">
@@ -316,11 +304,51 @@ export function UsersClient({
             </div>
           );
         })}
-        {users.length === 0 && (
-          <p className="py-10 text-center text-muted-foreground">No team members yet.</p>
-        )}
+      {users.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">No team members yet.</p>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-heading text-2xl">Team</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage staff, admin, and developer accounts.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-1 rounded-md border border-border p-1 lg:flex">
+            <Button
+              variant={layout === "table" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setLayout("table")}
+              aria-label="Table view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={layout === "card" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setLayout("card")}
+              aria-label="Card view"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4" /> New Team Member
+          </Button>
+        </div>
       </div>
 
+      <div className="lg:hidden">{cardGrid}</div>
+
+      {layout === "card" ? (
+        <div className="hidden lg:block">{cardGrid}</div>
+      ) : (
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
         <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -408,6 +436,7 @@ export function UsersClient({
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>

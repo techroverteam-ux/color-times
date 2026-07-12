@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Grid3x3, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -72,6 +72,7 @@ export function ServiceOrdersClient({
   const [status, setStatus] = useState("all");
   const [serviceType, setServiceType] = useState("all");
   const [view, setView] = useState<"active" | "trash">("active");
+  const [layout, setLayout] = useState<"table" | "card">("table");
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<ServiceOrderRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -125,6 +126,84 @@ export function ServiceOrdersClient({
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const cardGrid = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {orders.map((order) => (
+        <div key={order._id} className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-medium">{order.product?.name ?? "—"}</p>
+            {view === "trash" && (
+              <ServiceOrderStatusBadge status={order.status as ServiceOrderStatus} />
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {order.serviceType === "dry_clean" ? "Dry Clean" : "Tailor / Alteration"}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{order.description}</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">Cost</p>
+              <p>₹{order.cost.toLocaleString("en-IN")}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Assigned To</p>
+              <p>{order.assignedTo ?? "—"}</p>
+            </div>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Expected return {formatDate(order.expectedReturnDate)}
+          </p>
+          {view === "active" && (
+            <>
+              <Select
+                value={order.status}
+                onValueChange={(value) => {
+                  if (value && value !== order.status) {
+                    statusMutation.mutate({ id: order._id, status: value as ServiceOrderStatus });
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-3 w-full" size="sm">
+                  <SelectValue>{(value: string) => value.replace("_", " ")}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option.replace("_", " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="mt-3 flex justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setEditingOrder(order);
+                    setFormOpen(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive"
+                  onClick={() => setDeleteId(order._id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+      {orders.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">No service orders found.</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -206,84 +285,31 @@ export function ServiceOrdersClient({
             <SelectItem value="trash">Trash</SelectItem>
           </SelectContent>
         </Select>
+        <div className="hidden items-center gap-1 rounded-md border border-border p-1 lg:flex">
+          <Button
+            variant={layout === "table" ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => setLayout("table")}
+            aria-label="Table view"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={layout === "card" ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => setLayout("card")}
+            aria-label="Card view"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="space-y-3 lg:hidden">
-        {orders.map((order) => (
-          <div key={order._id} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-start justify-between gap-3">
-              <p className="font-medium">{order.product?.name ?? "—"}</p>
-              {view === "trash" && (
-                <ServiceOrderStatusBadge status={order.status as ServiceOrderStatus} />
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {order.serviceType === "dry_clean" ? "Dry Clean" : "Tailor / Alteration"}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">{order.description}</p>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Cost</p>
-                <p>₹{order.cost.toLocaleString("en-IN")}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Assigned To</p>
-                <p>{order.assignedTo ?? "—"}</p>
-              </div>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Expected return {formatDate(order.expectedReturnDate)}
-            </p>
-            {view === "active" && (
-              <>
-                <Select
-                  value={order.status}
-                  onValueChange={(value) => {
-                    if (value && value !== order.status) {
-                      statusMutation.mutate({ id: order._id, status: value as ServiceOrderStatus });
-                    }
-                  }}
-                >
-                  <SelectTrigger className="mt-3 w-full" size="sm">
-                    <SelectValue>{(value: string) => value.replace("_", " ")}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option.replace("_", " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="mt-3 flex justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setEditingOrder(order);
-                      setFormOpen(true);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive"
-                    onClick={() => setDeleteId(order._id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-        {orders.length === 0 && (
-          <p className="py-10 text-center text-muted-foreground">No service orders found.</p>
-        )}
-      </div>
+      <div className="lg:hidden">{cardGrid}</div>
 
+      {layout === "card" ? (
+        <div className="hidden lg:block">{cardGrid}</div>
+      ) : (
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
         <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -374,6 +400,7 @@ export function ServiceOrdersClient({
           </tbody>
         </table>
       </div>
+      )}
 
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">

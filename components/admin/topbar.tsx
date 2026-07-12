@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, LogOut, Menu, Moon, Settings, Sun, User as UserIcon } from "lucide-react";
+import { LogOut, Menu, Moon, Settings, Sun, User as UserIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AdminNavLinks } from "@/components/admin/nav-links";
 import { GlobalSearch } from "@/components/admin/global-search";
+import { VisitWebsiteLink } from "@/components/admin/visit-website-link";
 import { adminNavItems } from "@/lib/config/admin-nav";
 import { siteConfig } from "@/lib/config/site";
 import { useAdminTheme } from "@/components/admin/theme-provider";
@@ -67,28 +68,20 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
-            <div className="flex h-20 items-center justify-center border-b border-border px-6">
+            <div className="flex h-16 shrink-0 items-center justify-center border-b border-border px-6">
               <Image
                 src="/logo-icon.png"
                 alt={siteConfig.name}
-                width={72}
-                height={72}
-                className="h-[72px] w-[72px] object-contain"
+                width={44}
+                height={44}
+                className="h-11 w-11 object-contain"
               />
             </div>
             <div className="flex-1 overflow-y-auto">
               <AdminNavLinks role={user.role} onNavigate={() => setNavOpen(false)} />
             </div>
             <div className="border-t border-border p-4">
-              <Link
-                href="/home"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <ExternalLink className="h-3 w-3" />
-                View Website
-              </Link>
+              <VisitWebsiteLink />
             </div>
           </SheetContent>
         </Sheet>

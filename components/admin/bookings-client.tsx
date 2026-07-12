@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarDays, List } from "lucide-react";
+import { CalendarDays, Grid3x3, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import {
@@ -87,7 +87,7 @@ export function BookingsClient({
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("all");
-  const [view, setView] = useState<"table" | "calendar">("table");
+  const [view, setView] = useState<"table" | "card" | "calendar">("table");
   const [returnDialogBookingId, setReturnDialogBookingId] = useState<string | null>(null);
 
   const isDefaultQuery = page === 1 && status === "all";
@@ -126,6 +126,61 @@ export function BookingsClient({
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const cardGrid = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {bookings.map((booking) => (
+        <div key={booking._id} className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <Link
+              href={`/admin/bookings/${booking._id}`}
+              className="font-medium hover:text-accent hover:underline"
+            >
+              {booking.bookingNumber}
+            </Link>
+            <BookingStatusBadge status={booking.status} />
+          </div>
+          <p className="mt-2 text-sm">{booking.customer?.name ?? "—"}</p>
+          <p className="text-xs text-muted-foreground">{booking.customer?.email}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{productSummary(booking.items)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {formatDate(booking.rentalStartDate)} &rarr; {formatDate(booking.rentalEndDate)}
+          </p>
+          <p className="mt-2 text-sm font-medium">
+            &#8377;{booking.totalAmount.toLocaleString("en-IN")}
+          </p>
+          <Select
+            value={booking.status}
+            onValueChange={(value) => {
+              if (!value || value === booking.status) return;
+              if (value === "returned") {
+                setReturnDialogBookingId(booking._id);
+                return;
+              }
+              updateStatusMutation.mutate({
+                id: booking._id,
+                status: value as BookingStatus,
+              });
+            }}
+          >
+            <SelectTrigger className="mt-3 w-full" size="sm">
+              <SelectValue>{(value: string) => value.replace("_", " ")}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option.replace("_", " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ))}
+      {bookings.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">No bookings found.</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -168,6 +223,18 @@ export function BookingsClient({
             </button>
             <button
               type="button"
+              onClick={() => setView("card")}
+              className={cn(
+                "flex items-center gap-1.5 rounded px-2.5 py-1.5 text-sm",
+                view === "card"
+                  ? "bg-secondary font-medium"
+                  : "text-muted-foreground",
+              )}
+            >
+              <Grid3x3 className="h-4 w-4" /> Card
+            </button>
+            <button
+              type="button"
               onClick={() => setView("calendar")}
               className={cn(
                 "flex items-center gap-1.5 rounded px-2.5 py-1.5 text-sm",
@@ -181,7 +248,7 @@ export function BookingsClient({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {view === "table" && (
+          {view !== "calendar" && (
             <p className="text-sm text-muted-foreground">
               {pagination.total} bookings
             </p>
@@ -196,59 +263,11 @@ export function BookingsClient({
         <BookingCalendar />
       ) : (
         <>
-          <div className="space-y-3 lg:hidden">
-            {bookings.map((booking) => (
-              <div key={booking._id} className="rounded-lg border border-border bg-card p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <Link
-                    href={`/admin/bookings/${booking._id}`}
-                    className="font-medium hover:text-accent hover:underline"
-                  >
-                    {booking.bookingNumber}
-                  </Link>
-                  <BookingStatusBadge status={booking.status} />
-                </div>
-                <p className="mt-2 text-sm">{booking.customer?.name ?? "—"}</p>
-                <p className="text-xs text-muted-foreground">{booking.customer?.email}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{productSummary(booking.items)}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatDate(booking.rentalStartDate)} &rarr; {formatDate(booking.rentalEndDate)}
-                </p>
-                <p className="mt-2 text-sm font-medium">
-                  &#8377;{booking.totalAmount.toLocaleString("en-IN")}
-                </p>
-                <Select
-                  value={booking.status}
-                  onValueChange={(value) => {
-                    if (!value || value === booking.status) return;
-                    if (value === "returned") {
-                      setReturnDialogBookingId(booking._id);
-                      return;
-                    }
-                    updateStatusMutation.mutate({
-                      id: booking._id,
-                      status: value as BookingStatus,
-                    });
-                  }}
-                >
-                  <SelectTrigger className="mt-3 w-full" size="sm">
-                    <SelectValue>{(value: string) => value.replace("_", " ")}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option.replace("_", " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ))}
-            {bookings.length === 0 && (
-              <p className="py-10 text-center text-muted-foreground">No bookings found.</p>
-            )}
-          </div>
+          <div className="lg:hidden">{cardGrid}</div>
 
+          {view === "card" ? (
+            <div className="hidden lg:block">{cardGrid}</div>
+          ) : (
           <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
             <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
               <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -339,6 +358,7 @@ export function BookingsClient({
               </tbody>
             </table>
           </div>
+          )}
 
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between text-sm">

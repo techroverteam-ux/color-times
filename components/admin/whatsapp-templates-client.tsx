@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Grid3x3, List, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
@@ -29,6 +29,7 @@ export function WhatsAppTemplatesClient({
   const [formOpen, setFormOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<WhatsAppTemplateRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [layout, setLayout] = useState<"table" | "card">("table");
 
   const { data: templates = initialTemplates } = useQuery({
     queryKey: ["admin", "whatsapp", "templates"],
@@ -51,9 +52,79 @@ export function WhatsAppTemplatesClient({
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const cardGrid = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {templates.map((template) => (
+        <div key={template._id} className="rounded-lg border border-border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-medium">{template.name}</p>
+            <Badge
+              className={
+                template.isActive
+                  ? "rounded-full border-none bg-emerald-100 font-medium text-emerald-800"
+                  : "rounded-full border-none bg-secondary font-medium text-foreground"
+              }
+            >
+              {template.isActive ? "Active" : "Inactive"}
+            </Badge>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {TRIGGER_EVENT_LABELS[template.triggerEvent]}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Brevo Template ID {template.brevoTemplateId}
+          </p>
+          <div className="mt-3 flex justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setEditingTemplate(template);
+                setFormOpen(true);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive"
+              onClick={() => setDeleteId(template._id)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ))}
+      {templates.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">
+          No templates yet. Create one to start sending WhatsApp updates.
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div className="hidden items-center gap-1 rounded-md border border-border p-1 lg:flex">
+          <Button
+            variant={layout === "table" ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => setLayout("table")}
+            aria-label="Table view"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={layout === "card" ? "secondary" : "ghost"}
+            size="icon-sm"
+            onClick={() => setLayout("card")}
+            aria-label="Card view"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
+        </div>
         <Button
           size="sm"
           onClick={() => {
@@ -65,56 +136,11 @@ export function WhatsAppTemplatesClient({
         </Button>
       </div>
 
-      <div className="space-y-3 lg:hidden">
-        {templates.map((template) => (
-          <div key={template._id} className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-start justify-between gap-3">
-              <p className="font-medium">{template.name}</p>
-              <Badge
-                className={
-                  template.isActive
-                    ? "rounded-full border-none bg-emerald-100 font-medium text-emerald-800"
-                    : "rounded-full border-none bg-secondary font-medium text-foreground"
-                }
-              >
-                {template.isActive ? "Active" : "Inactive"}
-              </Badge>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {TRIGGER_EVENT_LABELS[template.triggerEvent]}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Brevo Template ID {template.brevoTemplateId}
-            </p>
-            <div className="mt-3 flex justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setEditingTemplate(template);
-                  setFormOpen(true);
-                }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-destructive"
-                onClick={() => setDeleteId(template._id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
-        {templates.length === 0 && (
-          <p className="py-10 text-center text-muted-foreground">
-            No templates yet. Create one to start sending WhatsApp updates.
-          </p>
-        )}
-      </div>
+      <div className="lg:hidden">{cardGrid}</div>
 
+      {layout === "card" ? (
+        <div className="hidden lg:block">{cardGrid}</div>
+      ) : (
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
         <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -179,6 +205,7 @@ export function WhatsAppTemplatesClient({
           </tbody>
         </table>
       </div>
+      )}
 
       <WhatsAppTemplateFormDialog
         open={formOpen}

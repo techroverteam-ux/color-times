@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Grid3x3, List, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,7 @@ export function CustomersClient({
 }) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [layout, setLayout] = useState<"table" | "card">("table");
 
   const isDefaultQuery = page === 1 && search === "";
 
@@ -59,6 +60,29 @@ export function CustomersClient({
 
   const customers = data?.customers ?? [];
   const pagination = data?.pagination ?? initialPagination;
+
+  const cardGrid = (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {customers.map((customer) => (
+        <div key={customer._id} className="rounded-lg border border-border bg-card p-4">
+          <p className="font-medium">{customer.name}</p>
+          <p className="text-sm text-muted-foreground">{customer.email}</p>
+          <p className="text-sm text-muted-foreground">{customer.phone ?? "—"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Joined {formatDate(customer.createdAt)}
+          </p>
+          <div className="mt-3 flex justify-end">
+            <ButtonLink variant="outline" size="sm" href={`/admin/customers/${customer._id}`}>
+              View
+            </ButtonLink>
+          </div>
+        </div>
+      ))}
+      {customers.length === 0 && (
+        <p className="col-span-full py-10 text-center text-muted-foreground">No customers found.</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -77,6 +101,24 @@ export function CustomersClient({
         </div>
         <div className="flex items-center gap-3">
           <p className="text-sm text-muted-foreground">{pagination.total} customers</p>
+          <div className="hidden items-center gap-1 rounded-md border border-border p-1 lg:flex">
+            <Button
+              variant={layout === "table" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setLayout("table")}
+              aria-label="Table view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={layout === "card" ? "secondary" : "ghost"}
+              size="icon-sm"
+              onClick={() => setLayout("card")}
+              aria-label="Card view"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+          </div>
           <CustomerImportDialog />
           <ButtonLink href="/admin/customers/new" size="sm">
             New Customer
@@ -84,27 +126,11 @@ export function CustomersClient({
         </div>
       </div>
 
-      <div className="space-y-3 lg:hidden">
-        {customers.map((customer) => (
-          <div key={customer._id} className="rounded-lg border border-border bg-card p-4">
-            <p className="font-medium">{customer.name}</p>
-            <p className="text-sm text-muted-foreground">{customer.email}</p>
-            <p className="text-sm text-muted-foreground">{customer.phone ?? "—"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Joined {formatDate(customer.createdAt)}
-            </p>
-            <div className="mt-3 flex justify-end">
-              <ButtonLink variant="outline" size="sm" href={`/admin/customers/${customer._id}`}>
-                View
-              </ButtonLink>
-            </div>
-          </div>
-        ))}
-        {customers.length === 0 && (
-          <p className="py-10 text-center text-muted-foreground">No customers found.</p>
-        )}
-      </div>
+      <div className="lg:hidden">{cardGrid}</div>
 
+      {layout === "card" ? (
+        <div className="hidden lg:block">{cardGrid}</div>
+      ) : (
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
         <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -146,6 +172,7 @@ export function CustomersClient({
           </tbody>
         </table>
       </div>
+      )}
 
       {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
