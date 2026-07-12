@@ -172,6 +172,12 @@
     -webkit-background-clip: text;
     color: transparent;
   }
+  .text-gradient-brand {
+    background: linear-gradient(115deg, #6b2fa0 10%, #d6247a 50%, #241b4d 90%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
   .kicker {
     @apply text-xs uppercase tracking-[0.3em] text-accent font-medium;
   }

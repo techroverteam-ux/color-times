@@ -76,7 +76,7 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
                 height={36}
                 className="h-9 w-9 shrink-0 object-contain"
               />
-              <span className="font-heading text-xl tracking-wide text-foreground">
+              <span className="text-gradient-brand font-heading text-xl font-semibold tracking-wide">
                 {siteConfig.shortName}
               </span>
             </div>

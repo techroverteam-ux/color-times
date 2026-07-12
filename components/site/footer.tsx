@@ -18,7 +18,7 @@ export function Footer() {
               height={36}
               className="h-9 w-9 object-contain"
             />
-            <span className="font-heading text-2xl tracking-wide">
+            <span className="text-gradient-brand font-heading text-2xl font-semibold tracking-wide">
               {siteConfig.shortName}
             </span>
           </div>
