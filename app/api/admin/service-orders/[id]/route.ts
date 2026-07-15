@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { ServiceOrder } from "@/models/ServiceOrder";
 import { Product } from "@/models/Product";
 import "@/models/Booking";
-import { serviceOrderUpdateSchema } from "@/lib/validations/service-order";
+import { serviceOrderUpdateSchema, computeServiceOrderTotal } from "@/lib/validations/service-order";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog, diffObjects } from "@/lib/audit/log";
@@ -53,7 +53,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
     if (input.product !== undefined) update.product = input.product;
     if (input.booking !== undefined) update.booking = input.booking || null;
     if (input.description !== undefined) update.description = input.description;
-    if (input.cost !== undefined) update.cost = input.cost;
+    if (input.dryCleanCharge !== undefined) update.dryCleanCharge = input.dryCleanCharge;
+    if (input.ironCharge !== undefined) update.ironCharge = input.ironCharge;
+    if (input.stitchingCharge !== undefined) update.stitchingCharge = input.stitchingCharge;
+    if (input.stitchingType !== undefined) update.stitchingType = input.stitchingType;
+    if (input.otherCharge !== undefined) update.otherCharge = input.otherCharge;
     if (input.assignedTo !== undefined) update.assignedTo = input.assignedTo;
     if (input.sentDate !== undefined) update.sentDate = new Date(input.sentDate);
     if (input.expectedReturnDate !== undefined) {
@@ -63,6 +67,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
     if (input.status !== undefined) {
       update.status = input.status;
       update.completedDate = input.status === "completed" ? new Date() : before.completedDate;
+    }
+
+    const hasChargeChange =
+      input.dryCleanCharge !== undefined ||
+      input.ironCharge !== undefined ||
+      input.stitchingCharge !== undefined ||
+      input.otherCharge !== undefined ||
+      input.serviceType !== undefined;
+    if (hasChargeChange) {
+      update.totalAmount = computeServiceOrderTotal({
+        serviceType: (input.serviceType ?? before.serviceType) as "dry_clean" | "tailor",
+        dryCleanCharge: input.dryCleanCharge ?? before.dryCleanCharge,
+        ironCharge: input.ironCharge ?? before.ironCharge,
+        stitchingCharge: input.stitchingCharge ?? before.stitchingCharge,
+        otherCharge: input.otherCharge ?? before.otherCharge,
+      });
     }
 
     const order = await ServiceOrder.findByIdAndUpdate(id, update, { returnDocument: "after" });

@@ -10,6 +10,8 @@ import {
   Sparkles,
   BarChart3,
   UserCog,
+  Ruler,
+  ShoppingBag,
 } from "lucide-react";
 import { MANAGER_ROLES, SETTINGS_ROLES } from "@/lib/auth/roles";
 import type { UserRole } from "@/models/User";
@@ -43,12 +45,14 @@ const NAV_GROUPS_BY_ROLE: { label: string; items: AdminNavItem[] }[] = [
     items: [
       { label: "Bookings", href: "/admin/bookings", icon: CalendarCheck },
       { label: "Dry Clean & Tailor", href: "/admin/services", icon: Sparkles },
+      { label: "Customisation", href: "/admin/customisation", icon: Ruler },
     ],
   },
   {
     label: "Billing",
     items: [
       { label: "Invoices", href: "/admin/invoices", icon: FileText },
+      { label: "Sale", href: "/admin/sales", icon: ShoppingBag },
       { label: "Reports", href: "/admin/reports", icon: BarChart3 },
     ],
   },

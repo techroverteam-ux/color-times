@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
   const [customer, bookings] = await Promise.all([
     User.findById(id).select("name email phone fatherName addresses isActive createdAt").lean(),
     Booking.find({ customer: id })
-      .populate("product", "name images")
+      .populate("items.product", "name images")
       .sort({ createdAt: -1 })
       .lean(),
   ]);

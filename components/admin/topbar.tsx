@@ -52,7 +52,7 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-4 lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
       <div className="flex items-center gap-1">
         <Sheet open={navOpen} onOpenChange={setNavOpen}>
           <Button
@@ -64,26 +64,28 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <SheetContent side="left" className="w-72 p-0">
+          <SheetContent side="left" className="admin-sidebar-gradient w-72 p-0 text-sidebar-foreground">
             <SheetHeader className="sr-only">
               <SheetTitle>Navigation</SheetTitle>
             </SheetHeader>
-            <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-border px-6">
-              <Image
-                src="/logo-icon.png"
-                alt={siteConfig.name}
-                width={36}
-                height={36}
-                className="h-9 w-9 shrink-0 object-contain"
-              />
-              <span className="text-gradient-brand font-heading text-xl font-semibold tracking-wide">
+            <div className="flex h-16 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-6">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-white/90 p-0.5">
+                <Image
+                  src="/logo-icon.png"
+                  alt={siteConfig.name}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 object-contain"
+                />
+              </span>
+              <span className="font-heading text-lg font-semibold tracking-wide text-sidebar-foreground">
                 {siteConfig.shortName}
               </span>
             </div>
             <div className="flex-1 overflow-y-auto">
               <AdminNavLinks role={user.role} onNavigate={() => setNavOpen(false)} />
             </div>
-            <div className="border-t border-border p-4">
+            <div className="border-t border-sidebar-border p-4">
               <VisitWebsiteLink />
             </div>
           </SheetContent>

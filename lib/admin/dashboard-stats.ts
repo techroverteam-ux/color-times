@@ -34,6 +34,14 @@ export interface DashboardStats {
   totalProducts: number;
   outstandingBalance: number;
   returnsDue: number;
+  availableDresses: number;
+  reservedDresses: number;
+  todaysBookings: number;
+  todaysPickups: number;
+  todaysReturns: number;
+  returnedToday: number;
+  pendingPaymentsCount: number;
+  monthlyRevenueTotal: number;
   recentBookings: {
     _id: string;
     bookingNumber: string;
@@ -54,6 +62,15 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   sixMonthsAgo.setDate(1);
   sixMonthsAgo.setHours(0, 0, 0, 0);
 
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
   const [
     totalRevenueResult,
     totalBookings,
@@ -62,6 +79,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalProducts,
     returnsDue,
     outstandingBalanceResult,
+    availableDresses,
+    reservedDresses,
+    todaysBookings,
+    todaysPickups,
+    todaysReturns,
+    returnedToday,
+    pendingPaymentsCount,
+    monthlyRevenueTotalResult,
     recentBookings,
     monthlyRevenue,
   ] = await Promise.all([
@@ -85,6 +110,30 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         },
       },
       { $group: { _id: null, total: { $sum: "$amountDue" } } },
+    ]),
+    Product.countDocuments({ status: "available", isActive: true, deletedAt: null }),
+    Product.countDocuments({
+      status: { $in: ["reserved", "booked"] },
+      isActive: true,
+      deletedAt: null,
+    }),
+    Booking.countDocuments({ createdAt: { $gte: startOfToday, $lt: startOfTomorrow } }),
+    Booking.countDocuments({
+      rentalStartDate: { $gte: startOfToday, $lt: startOfTomorrow },
+      status: { $ne: "cancelled" },
+    }),
+    Booking.countDocuments({
+      rentalEndDate: { $gte: startOfToday, $lt: startOfTomorrow },
+      status: { $ne: "cancelled" },
+    }),
+    Booking.countDocuments({ returnedAt: { $gte: startOfToday, $lt: startOfTomorrow } }),
+    Invoice.countDocuments({
+      deletedAt: null,
+      status: { $in: ["sent", "partially_paid", "overdue"] },
+    }),
+    Booking.aggregate([
+      { $match: { status: { $in: REVENUE_STATUSES }, createdAt: { $gte: startOfMonth } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
     Booking.find()
       .populate("customer", "name")
@@ -118,6 +167,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalProducts,
     returnsDue,
     outstandingBalance: outstandingBalanceResult[0]?.total ?? 0,
+    availableDresses,
+    reservedDresses,
+    todaysBookings,
+    todaysPickups,
+    todaysReturns,
+    returnedToday,
+    pendingPaymentsCount,
+    monthlyRevenueTotal: monthlyRevenueTotalResult[0]?.total ?? 0,
     recentBookings: recentBookings.map((booking) => ({
       _id: String(booking._id),
       bookingNumber: booking.bookingNumber,

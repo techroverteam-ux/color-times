@@ -1,0 +1,77 @@
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/db/connect";
+import { Sale } from "@/models/Sale";
+import "@/models/Product";
+import { saleSchema } from "@/lib/validations/sale";
+import { generateSaleBillNumber } from "@/lib/admin/sale-number";
+import { requireApiRole } from "@/lib/api/require-role";
+import { ADMIN_ROLES } from "@/lib/auth/roles";
+import { recordAuditLog } from "@/lib/audit/log";
+import { apiSuccess, apiErrorFromUnknown } from "@/lib/api/response";
+
+export async function GET(request: NextRequest): Promise<Response> {
+  const auth = await requireApiRole(ADMIN_ROLES);
+  if ("error" in auth) return auth.error;
+
+  await connectToDatabase();
+
+  const searchParams = request.nextUrl.searchParams;
+  const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+  const pageSize = Math.min(50, Math.max(1, Number(searchParams.get("pageSize") ?? "20")));
+  const view = searchParams.get("view") ?? "active";
+
+  const filter: Record<string, unknown> =
+    view === "trash" ? { deletedAt: { $ne: null } } : { deletedAt: null };
+
+  const [sales, total] = await Promise.all([
+    Sale.find(filter)
+      .populate("product", "name images sku")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .lean(),
+    Sale.countDocuments(filter),
+  ]);
+
+  return apiSuccess({
+    sales,
+    pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+  });
+}
+
+export async function POST(request: NextRequest): Promise<Response> {
+  const auth = await requireApiRole(ADMIN_ROLES);
+  if ("error" in auth) return auth.error;
+
+  try {
+    const body = await request.json();
+    const input = saleSchema.parse(body);
+
+    await connectToDatabase();
+
+    const billNumber = await generateSaleBillNumber();
+
+    const sale = await Sale.create({
+      billNumber,
+      saleDate: new Date(input.saleDate),
+      customerName: input.customerName,
+      customerPhone: input.customerPhone,
+      customerAddress: input.customerAddress,
+      product: input.product,
+      details: input.details,
+      totalAmount: input.totalAmount,
+    });
+
+    await recordAuditLog({
+      entityType: "Sale",
+      entityId: String(sale._id),
+      action: "create",
+      actor: auth.user,
+      snapshot: sale.toObject() as unknown as Record<string, unknown>,
+    });
+
+    return apiSuccess({ sale }, 201);
+  } catch (error) {
+    return apiErrorFromUnknown(error);
+  }
+}

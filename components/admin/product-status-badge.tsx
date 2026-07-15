@@ -5,16 +5,22 @@ import type { ProductStatus } from "@/models/Product";
 const STATUS_STYLES: Record<ProductStatus, string> = {
   available: "bg-emerald-100 text-emerald-800",
   booked: "bg-blue-100 text-blue-800",
+  reserved: "bg-blue-100 text-blue-800",
+  picked_up: "bg-indigo-100 text-indigo-800",
   under_dry_cleaning: "bg-amber-100 text-amber-800",
   under_repair: "bg-orange-100 text-orange-800",
+  damaged: "bg-red-100 text-red-800",
   returned: "bg-slate-200 text-slate-700",
 };
 
 const STATUS_LABELS: Record<ProductStatus, string> = {
   available: "Available",
-  booked: "Booked",
-  under_dry_cleaning: "Under Dry Cleaning",
-  under_repair: "Under Repair",
+  booked: "Reserved",
+  reserved: "Reserved",
+  picked_up: "Picked Up",
+  under_dry_cleaning: "Dry Cleaning",
+  under_repair: "Repair",
+  damaged: "Damaged",
   returned: "Returned",
 };
 

@@ -398,7 +398,7 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
   function handleExportPdf() {
     void withExportGuard(async () => {
       const rows = await fetchExportRows();
-      downloadPdf("products", "Product Inventory", exportHeaders, rows);
+      await downloadPdf("products", "Product Inventory", exportHeaders, rows);
     });
   }
 

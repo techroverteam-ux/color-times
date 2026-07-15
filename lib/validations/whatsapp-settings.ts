@@ -8,6 +8,8 @@ export const whatsAppSettingsSchema = z.object({
   autoSendOnBookingCancelled: z.boolean(),
   autoSendOnInvoiceSent: z.boolean(),
   autoSendOnPaymentReceived: z.boolean(),
+  autoSendOnCustomisationBillSent: z.boolean(),
+  autoSendOnSaleBillSent: z.boolean(),
 });
 
 export type WhatsAppSettingsInput = z.infer<typeof whatsAppSettingsSchema>;
@@ -20,4 +22,6 @@ export const DEFAULT_WHATSAPP_SETTINGS: WhatsAppSettingsInput = {
   autoSendOnBookingCancelled: true,
   autoSendOnInvoiceSent: true,
   autoSendOnPaymentReceived: true,
+  autoSendOnCustomisationBillSent: true,
+  autoSendOnSaleBillSent: true,
 };

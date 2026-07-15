@@ -12,7 +12,7 @@ const PAGE_SIZE = 20;
 export default async function AdminServicesPage() {
   await connectToDatabase();
 
-  const activeFilter = { deletedAt: null };
+  const activeFilter = { deletedAt: null, serviceType: "dry_clean" as const };
 
   const [orders, total, products] = await Promise.all([
     ServiceOrder.find(activeFilter)
@@ -37,7 +37,12 @@ export default async function AdminServicesPage() {
       : null,
     description: order.description,
     status: order.status,
-    cost: order.cost,
+    dryCleanCharge: order.dryCleanCharge,
+    ironCharge: order.ironCharge,
+    stitchingCharge: order.stitchingCharge,
+    stitchingType: order.stitchingType,
+    otherCharge: order.otherCharge,
+    totalAmount: order.totalAmount,
     assignedTo: order.assignedTo,
     sentDate: order.sentDate.toISOString(),
     expectedReturnDate: order.expectedReturnDate.toISOString(),

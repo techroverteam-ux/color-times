@@ -148,3 +148,23 @@ export async function getAllActiveProducts(limit = 24): Promise<DressListing[]> 
 
   return products.map(toDressListing);
 }
+
+export interface DesignerSummary {
+  name: string;
+  productCount: number;
+}
+
+export async function getPopularDesigners(limit = 6): Promise<DesignerSummary[]> {
+  await connectToDatabase();
+  const results = await Product.aggregate<{ _id: string; count: number }>([
+    { $match: { ...PUBLICLY_VISIBLE_FILTER, designer: { $nin: [null, ""] } } },
+    { $group: { _id: "$designer", count: { $sum: 1 } } },
+    { $sort: { count: -1, _id: 1 } },
+    { $limit: limit },
+  ]);
+
+  return results.map((result) => ({
+    name: result._id,
+    productCount: result.count,
+  }));
+}

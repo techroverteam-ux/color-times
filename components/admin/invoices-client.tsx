@@ -426,7 +426,7 @@ export function InvoicesClient({
             onClick={() =>
               withExportGuard(async () => {
                 const { headers, rows } = await exportRows();
-                downloadPdf("invoices", "Invoices", headers, rows);
+                await downloadPdf("invoices", "Invoices", headers, rows);
               })
             }
           >

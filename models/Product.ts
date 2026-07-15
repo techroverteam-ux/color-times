@@ -2,13 +2,24 @@ import { Schema, model, models, type Document, type Model, type Types } from "mo
 
 export type ProductSize = "XS" | "S" | "M" | "L" | "XL" | "XXL" | "Custom";
 
-export type ProductStatus = "available" | "booked" | "under_dry_cleaning" | "under_repair" | "returned";
+export type ProductStatus =
+  | "available"
+  | "booked"
+  | "reserved"
+  | "picked_up"
+  | "under_dry_cleaning"
+  | "under_repair"
+  | "damaged"
+  | "returned";
 
 export const PRODUCT_STATUSES: ProductStatus[] = [
   "available",
   "booked",
+  "reserved",
+  "picked_up",
   "under_dry_cleaning",
   "under_repair",
+  "damaged",
   "returned",
 ];
 
@@ -27,11 +38,16 @@ export interface IProduct extends Document {
   description: string;
   color: string;
   fabric: string;
+  dressType?: string;
+  work?: string;
   images: string[];
   variants: IProductVariant[];
   status: ProductStatus;
   rentalPricePerDay: number;
   retailValue: number;
+  purchasePrice?: number;
+  stitchingCost?: number;
+  transportCost?: number;
   securityDeposit: number;
   isFeatured: boolean;
   isNewArrival: boolean;
@@ -68,6 +84,8 @@ const productSchema = new Schema<IProduct>(
     description: { type: String, required: true },
     color: { type: String, required: true },
     fabric: { type: String, required: true },
+    dressType: { type: String, trim: true },
+    work: { type: String, trim: true },
     images: { type: [String], required: true, validate: (v: string[]) => v.length > 0 },
     variants: { type: [variantSchema], required: true },
     status: {
@@ -78,6 +96,9 @@ const productSchema = new Schema<IProduct>(
     },
     rentalPricePerDay: { type: Number, required: true, min: 0 },
     retailValue: { type: Number, required: true, min: 0 },
+    purchasePrice: { type: Number, min: 0 },
+    stitchingCost: { type: Number, min: 0 },
+    transportCost: { type: Number, min: 0 },
     securityDeposit: { type: Number, required: true, min: 0 },
     isFeatured: { type: Boolean, default: false, index: true },
     isNewArrival: { type: Boolean, default: false, index: true },

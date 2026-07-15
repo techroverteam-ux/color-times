@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { FileDown, FileSpreadsheet, Grid3x3, List, Printer, Table2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Bell, FileDown, FileSpreadsheet, Grid3x3, List, Loader2, Printer, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -16,16 +17,26 @@ import { StatCard } from "@/components/admin/stat-card";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
 import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
+import { CustomisationStatusBadge } from "@/components/admin/customisation-status-badge";
 import { downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { DATE_RANGE_PRESETS, DATE_RANGE_LABELS, type DateRangePreset } from "@/lib/admin/date-ranges";
 import { formatDate } from "@/lib/utils";
 import type { BookingStatus } from "@/models/Booking";
 import type { InvoiceStatus } from "@/models/Invoice";
 import type { ServiceOrderStatus } from "@/models/ServiceOrder";
+import type { CustomisationOrderStatus } from "@/models/CustomisationOrder";
 
 const PAGE_SIZE = 20;
 
-type ReportType = "products" | "bookings" | "invoices" | "customers" | "services";
+type ReportType =
+  | "products"
+  | "bookings"
+  | "invoices"
+  | "customers"
+  | "services"
+  | "customisation"
+  | "sale"
+  | "pending-returns";
 type Row = Record<string, string | number | boolean>;
 
 const REPORT_TYPE_OPTIONS: { value: ReportType; label: string }[] = [
@@ -34,6 +45,9 @@ const REPORT_TYPE_OPTIONS: { value: ReportType; label: string }[] = [
   { value: "invoices", label: "Invoices" },
   { value: "customers", label: "Customers" },
   { value: "services", label: "Dry Clean & Tailor" },
+  { value: "customisation", label: "Customisation" },
+  { value: "sale", label: "Sale" },
+  { value: "pending-returns", label: "Pending Returns" },
 ];
 
 const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
@@ -70,6 +84,16 @@ const STATUS_OPTIONS: Record<ReportType, { value: string; label: string }[]> = {
     { value: "completed", label: "Completed" },
     { value: "cancelled", label: "Cancelled" },
   ],
+  customisation: [
+    { value: "all", label: "All" },
+    { value: "pending", label: "Pending" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "ready", label: "Ready" },
+    { value: "delivered", label: "Delivered" },
+    { value: "cancelled", label: "Cancelled" },
+  ],
+  sale: [],
+  "pending-returns": [],
 };
 
 const SERVICE_TYPE_OPTIONS = [
@@ -83,6 +107,53 @@ interface ColumnConfig {
   label: string;
   format?: (row: Row) => string;
   render?: (row: Row) => React.ReactNode;
+}
+
+function DueBadge({ isOverdue, daysOverdue }: { isOverdue: boolean; daysOverdue: number }) {
+  if (isOverdue) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+        Overdue {daysOverdue}d
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+      On track
+    </span>
+  );
+}
+
+function RemindButton({ bookingId }: { bookingId: string }) {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/admin/bookings/${bookingId}/remind`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      return json.data;
+    },
+    onSuccess: () => {
+      toast.success("Return reminder sent");
+      queryClient.invalidateQueries({ queryKey: ["admin", "whatsapp"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      disabled={mutation.isPending}
+      onClick={(event) => {
+        event.stopPropagation();
+        mutation.mutate();
+      }}
+    >
+      {mutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
+      Remind
+    </Button>
+  );
 }
 
 const CURRENCY = (value: unknown) =>
@@ -145,7 +216,12 @@ const TABLE_CONFIGS: Record<ReportType, ColumnConfig[]> = {
       format: (r) => (r.serviceType === "dry_clean" ? "Dry Clean" : "Tailor / Alteration"),
     },
     { key: "description", label: "Description" },
-    { key: "cost", label: "Cost", format: (r) => CURRENCY(r.cost) },
+    { key: "stitchingType", label: "Stitching Type" },
+    { key: "dryCleanCharge", label: "Dry Clean", format: (r) => CURRENCY(r.dryCleanCharge) },
+    { key: "ironCharge", label: "Iron", format: (r) => CURRENCY(r.ironCharge) },
+    { key: "stitchingCharge", label: "Stitching", format: (r) => CURRENCY(r.stitchingCharge) },
+    { key: "otherCharge", label: "Other", format: (r) => CURRENCY(r.otherCharge) },
+    { key: "totalAmount", label: "Total", format: (r) => CURRENCY(r.totalAmount) },
     {
       key: "status",
       label: "Status",
@@ -154,6 +230,51 @@ const TABLE_CONFIGS: Record<ReportType, ColumnConfig[]> = {
     },
     { key: "assignedTo", label: "Assigned To" },
     { key: "expectedReturnDate", label: "Expected Return", format: (r) => DATE(r.expectedReturnDate) },
+  ],
+  customisation: [
+    { key: "billNumber", label: "Bill #" },
+    { key: "customerName", label: "Customer" },
+    { key: "customerPhone", label: "Mobile" },
+    { key: "stitchingType", label: "Stitching Type" },
+    { key: "totalAmount", label: "Total", format: (r) => CURRENCY(r.totalAmount) },
+    { key: "advancePayment", label: "Advance", format: (r) => CURRENCY(r.advancePayment) },
+    { key: "dueAmount", label: "Due", format: (r) => CURRENCY(r.dueAmount) },
+    {
+      key: "status",
+      label: "Status",
+      format: (r) =>
+        STATUS_OPTIONS.customisation.find((o) => o.value === r.status)?.label ?? String(r.status),
+      render: (r) => <CustomisationStatusBadge status={r.status as CustomisationOrderStatus} />,
+    },
+    { key: "orderDate", label: "Order Date", format: (r) => DATE(r.orderDate) },
+  ],
+  sale: [
+    { key: "billNumber", label: "Bill #" },
+    { key: "customerName", label: "Customer" },
+    { key: "customerPhone", label: "Mobile" },
+    { key: "product", label: "Product" },
+    { key: "totalAmount", label: "Total", format: (r) => CURRENCY(r.totalAmount) },
+    { key: "saleDate", label: "Sale Date", format: (r) => DATE(r.saleDate) },
+  ],
+  "pending-returns": [
+    { key: "bookingNumber", label: "Booking #" },
+    { key: "customer", label: "Customer" },
+    { key: "customerPhone", label: "Mobile", format: (r) => String(r.customerPhone ?? "—") },
+    { key: "product", label: "Product" },
+    { key: "rentalEndDate", label: "Return Due", format: (r) => DATE(r.rentalEndDate) },
+    {
+      key: "isOverdue",
+      label: "Status",
+      format: (r) => (r.isOverdue ? `Overdue ${r.daysOverdue}d` : "On track"),
+      render: (r) => <DueBadge isOverdue={Boolean(r.isOverdue)} daysOverdue={Number(r.daysOverdue ?? 0)} />,
+    },
+    { key: "securityDeposit", label: "Deposit Held", format: (r) => CURRENCY(r.securityDeposit) },
+    {
+      key: "_id",
+      label: "Action",
+      format: () => "",
+      render: (r) => <RemindButton bookingId={String(r._id)} />,
+    },
   ],
 };
 
@@ -191,6 +312,20 @@ const SUMMARY_CONFIGS: Record<ReportType, SummaryCardConfig[]> = {
     { key: "totalCost", label: "Total Cost", format: CURRENCY },
     { key: "completedCount", label: "Completed" },
     { key: "pendingCount", label: "Pending / In Progress" },
+  ],
+  customisation: [
+    { key: "totalOrders", label: "Total Orders" },
+    { key: "totalRevenue", label: "Total Revenue", format: CURRENCY },
+    { key: "totalAdvanceCollected", label: "Advance Collected", format: CURRENCY },
+    { key: "totalDue", label: "Total Due", format: CURRENCY },
+  ],
+  sale: [
+    { key: "totalSales", label: "Total Sales" },
+    { key: "totalRevenue", label: "Total Revenue", format: CURRENCY },
+  ],
+  "pending-returns": [
+    { key: "totalPending", label: "Total Pending" },
+    { key: "overdueCount", label: "Overdue" },
   ],
 };
 
@@ -366,28 +501,30 @@ export function ReportsClient() {
           </SelectContent>
         </Select>
 
-        <Select
-          value={range}
-          onValueChange={(value) => {
-            setRange((value as DateRangePreset) ?? "month");
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-56">
-            <SelectValue>
-              {(value: DateRangePreset) => DATE_RANGE_LABELS[value] ?? value}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {DATE_RANGE_PRESETS.map((preset) => (
-              <SelectItem key={preset} value={preset}>
-                {DATE_RANGE_LABELS[preset]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {reportType !== "pending-returns" && (
+          <Select
+            value={range}
+            onValueChange={(value) => {
+              setRange((value as DateRangePreset) ?? "month");
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-56">
+              <SelectValue>
+                {(value: DateRangePreset) => DATE_RANGE_LABELS[value] ?? value}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_RANGE_PRESETS.map((preset) => (
+                <SelectItem key={preset} value={preset}>
+                  {DATE_RANGE_LABELS[preset]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
-        {range === "custom" && (
+        {reportType !== "pending-returns" && range === "custom" && (
           <>
             <DatePicker
               value={customFrom}
@@ -502,9 +639,11 @@ export function ReportsClient() {
             onClick={() =>
               withExportGuard(async () => {
                 const { headers, rows } = await exportRows();
-                downloadPdf(
+                const rangeSuffix =
+                  reportType !== "pending-returns" && data?.range.label ? ` — ${data.range.label}` : "";
+                await downloadPdf(
                   `${reportType}-report`,
-                  `${REPORT_TYPE_OPTIONS.find((o) => o.value === reportType)?.label} Report — ${data?.range.label ?? ""}`,
+                  `${REPORT_TYPE_OPTIONS.find((o) => o.value === reportType)?.label} Report${rangeSuffix}`,
                   headers,
                   rows
                 );
@@ -521,7 +660,11 @@ export function ReportsClient() {
 
       {data && (
         <p className="text-sm text-muted-foreground">
-          Showing <span className="font-medium text-foreground">{data.range.label}</span> &middot;{" "}
+          {reportType !== "pending-returns" && (
+            <>
+              Showing <span className="font-medium text-foreground">{data.range.label}</span> &middot;{" "}
+            </>
+          )}
           {data.pagination.total} records
         </p>
       )}

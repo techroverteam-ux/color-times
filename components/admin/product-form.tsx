@@ -63,10 +63,15 @@ export function ProductForm({ categories, productId, defaultValues }: ProductFor
       description: "",
       color: "",
       fabric: "",
+      dressType: "",
+      work: "",
       images: [],
       variants: [{ size: "M", quantityInStock: 0 }],
       rentalPricePerDay: 0,
       retailValue: 0,
+      purchasePrice: 0,
+      stitchingCost: 0,
+      transportCost: 0,
       securityDeposit: 0,
       isFeatured: false,
       isNewArrival: false,
@@ -218,6 +223,32 @@ export function ProductForm({ categories, productId, defaultValues }: ProductFor
                   <FormLabel>Fabric</FormLabel>
                   <FormControl>
                     <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="dressType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Dress Type</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Unstitched, Semi-stitched, Ready-to-wear" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="work"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Work</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. Zari embroidery, Mirror work" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -383,6 +414,57 @@ export function ProductForm({ categories, productId, defaultValues }: ProductFor
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="purchasePrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Purchase Price (&#8377;)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={field.value ?? 0}
+                      onChange={(event) => field.onChange(Number(event.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="stitchingCost"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Stitching Cost (&#8377;)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={field.value ?? 0}
+                      onChange={(event) => field.onChange(Number(event.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="transportCost"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Transport Cost (&#8377;)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      value={field.value ?? 0}
+                      onChange={(event) => field.onChange(Number(event.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </section>
 
@@ -410,9 +492,11 @@ export function ProductForm({ categories, productId, defaultValues }: ProductFor
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="available">Available</SelectItem>
-                        <SelectItem value="booked">Booked</SelectItem>
-                        <SelectItem value="under_dry_cleaning">Under Dry Cleaning</SelectItem>
-                        <SelectItem value="under_repair">Under Repair</SelectItem>
+                        <SelectItem value="reserved">Reserved</SelectItem>
+                        <SelectItem value="picked_up">Picked Up</SelectItem>
+                        <SelectItem value="under_dry_cleaning">Dry Cleaning</SelectItem>
+                        <SelectItem value="under_repair">Repair</SelectItem>
+                        <SelectItem value="damaged">Damaged</SelectItem>
                         <SelectItem value="returned">Returned</SelectItem>
                       </SelectContent>
                     </Select>

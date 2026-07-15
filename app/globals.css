@@ -133,6 +133,96 @@
   --sidebar-ring: oklch(0.75 0.086 65.3);
 }
 
+/* Admin panel theme — wine / gold / cream, scoped so the public marketing
+   site keeps its own palette. Toggled onto <html> by AdminThemeProvider so
+   portaled dropdowns/sheets/dialogs (rendered at document.body) inherit it too. */
+.admin-theme {
+  --background: #faf6ef;
+  --foreground: #2a1e22;
+  --card: #ffffff;
+  --card-foreground: #2a1e22;
+  --popover: #ffffff;
+  --popover-foreground: #2a1e22;
+  --primary: #3d1229;
+  --primary-foreground: #ffffff;
+  --secondary: #f1eae0;
+  --secondary-foreground: #2a1e22;
+  --muted: #f5f1e9;
+  --muted-foreground: #6e5e63;
+  --accent: #c9a45c;
+  --accent-foreground: #2a1e22;
+  --destructive: #b23a48;
+  --border: #ebe2d6;
+  --input: #ebe2d6;
+  --ring: #c9a45c;
+  --chart-1: #3d1229;
+  --chart-2: #c9a45c;
+  --chart-3: #2e6e62;
+  --chart-4: #b23a48;
+  --chart-5: #6e5e63;
+  --radius: 0.875rem;
+  --gold: #c9a45c;
+  --gold-foreground: #2a1e22;
+  --burgundy: #3d1229;
+  --ivory: #faf6ef;
+  --charcoal: #2a1e22;
+  --sidebar: #3d1229;
+  --sidebar-foreground: #f3e9ee;
+  --sidebar-primary: #c9a45c;
+  --sidebar-primary-foreground: #28081a;
+  --sidebar-accent: rgba(255, 255, 255, 0.13);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #c9a45c;
+  --font-display: var(--font-admin-display);
+}
+
+.admin-theme.dark {
+  --background: #1d1014;
+  --foreground: #f3e9ee;
+  --card: #28181d;
+  --card-foreground: #f3e9ee;
+  --popover: #28181d;
+  --popover-foreground: #f3e9ee;
+  --primary: #e3b36e;
+  --primary-foreground: #28081a;
+  --secondary: #33222a;
+  --secondary-foreground: #f3e9ee;
+  --muted: #2e1e24;
+  --muted-foreground: #c9a6b4;
+  --accent: #c9a45c;
+  --accent-foreground: #1d1014;
+  --destructive: #e06773;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #c9a45c;
+  --chart-1: #c9a45c;
+  --chart-2: #e3b36e;
+  --chart-3: #4c9186;
+  --chart-4: #e06773;
+  --chart-5: #c9a6b4;
+  --gold: #c9a45c;
+  --gold-foreground: #1d1014;
+  --burgundy: #6b2a45;
+  --ivory: #f3e9ee;
+  --charcoal: #1d1014;
+  --sidebar: #17070f;
+  --sidebar-foreground: #f3e9ee;
+  --sidebar-primary: #c9a45c;
+  --sidebar-primary-foreground: #17070f;
+  --sidebar-accent: rgba(255, 255, 255, 0.09);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #c9a45c;
+}
+
+.admin-sidebar-gradient {
+  background: linear-gradient(180deg, #3d1229 0%, #28081a 100%);
+}
+.dark .admin-sidebar-gradient {
+  background: linear-gradient(180deg, #28081a 0%, #17070f 100%);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

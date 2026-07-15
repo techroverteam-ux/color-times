@@ -25,7 +25,7 @@ export function AdminNavLinks({
     <nav className="flex-1 space-y-5 px-3 py-4">
       {groups.map((group) => (
         <div key={group.label}>
-          <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+          <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
             {group.label}
           </p>
           <div className="space-y-0.5">
@@ -39,13 +39,13 @@ export function AdminNavLinks({
                   className={cn(
                     "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                     active
-                      ? "bg-primary/10 font-semibold text-primary"
-                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                      ? "bg-sidebar-accent font-semibold text-white"
+                      : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-white"
                   )}
                 >
                   <span
                     className={cn(
-                      "absolute left-0 h-5 w-[3px] rounded-full bg-primary transition-opacity",
+                      "absolute left-0 h-5 w-[3px] rounded-full bg-sidebar-primary transition-opacity",
                       active ? "opacity-100" : "opacity-0"
                     )}
                   />

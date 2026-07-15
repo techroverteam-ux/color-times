@@ -1,4 +1,5 @@
 import { Schema, model, models, type Document, type Model, type Types } from "mongoose";
+import { measurementsSchema, type MeasurementValues } from "@/models/shared/measurements";
 
 export type BookingStatus =
   | "inquiry"
@@ -36,11 +37,21 @@ export interface IBooking extends Document {
   status: BookingStatus;
   securityDeposit: number;
   totalAmount: number;
+  advancePaid: number;
+  measurements?: MeasurementValues;
   deliveryAddress: string;
   notes?: string;
   returnCondition?: ReturnCondition;
   returnNotes?: string;
   returnedAt?: Date | null;
+  dryCleaningRequired?: boolean;
+  stitchingRequired?: boolean;
+  damageCharges?: number;
+  pendingRentAmount?: number;
+  depositRefundAmount?: number;
+  depositRefunded?: boolean;
+  finalSettlementAmount?: number;
+  settledAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -79,11 +90,21 @@ const bookingSchema = new Schema<IBooking>(
     },
     securityDeposit: { type: Number, required: true, min: 0 },
     totalAmount: { type: Number, required: true, min: 0 },
+    advancePaid: { type: Number, required: true, min: 0, default: 0 },
+    measurements: { type: measurementsSchema, default: undefined },
     deliveryAddress: { type: String, required: true },
     notes: { type: String },
     returnCondition: { type: String, enum: RETURN_CONDITIONS },
     returnNotes: { type: String },
     returnedAt: { type: Date, default: null },
+    dryCleaningRequired: { type: Boolean, default: false },
+    stitchingRequired: { type: Boolean, default: false },
+    damageCharges: { type: Number, min: 0, default: 0 },
+    pendingRentAmount: { type: Number, min: 0, default: 0 },
+    depositRefundAmount: { type: Number, min: 0, default: 0 },
+    depositRefunded: { type: Boolean, default: false },
+    finalSettlementAmount: { type: Number, default: 0 },
+    settledAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

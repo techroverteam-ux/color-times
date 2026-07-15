@@ -3,7 +3,7 @@ import { connectToDatabase } from "@/lib/db/connect";
 import { ServiceOrder } from "@/models/ServiceOrder";
 import { Product } from "@/models/Product";
 import "@/models/Booking";
-import { serviceOrderSchema } from "@/lib/validations/service-order";
+import { serviceOrderSchema, computeServiceOrderTotal } from "@/lib/validations/service-order";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
@@ -53,12 +53,19 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     await connectToDatabase();
 
+    const totalAmount = computeServiceOrderTotal(input);
+
     const order = await ServiceOrder.create({
       serviceType: input.serviceType,
       product: input.product,
       booking: input.booking || null,
       description: input.description,
-      cost: input.cost,
+      dryCleanCharge: input.dryCleanCharge,
+      ironCharge: input.ironCharge,
+      stitchingCharge: input.stitchingCharge,
+      stitchingType: input.stitchingType,
+      otherCharge: input.otherCharge,
+      totalAmount,
       assignedTo: input.assignedTo,
       sentDate: new Date(input.sentDate),
       expectedReturnDate: new Date(input.expectedReturnDate),

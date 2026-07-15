@@ -17,12 +17,14 @@ type AutoSendKey =
   | "autoSendOnBookingReturned"
   | "autoSendOnBookingCancelled"
   | "autoSendOnInvoiceSent"
-  | "autoSendOnPaymentReceived";
+  | "autoSendOnPaymentReceived"
+  | "autoSendOnCustomisationBillSent"
+  | "autoSendOnSaleBillSent";
 
 interface NotifyContext {
   customerName: string;
   customerPhone?: string;
-  relatedEntityType: "Booking" | "Invoice";
+  relatedEntityType: "Booking" | "Invoice" | "CustomisationOrder" | "Sale";
   relatedEntityId: string;
   variables: Record<string, string>;
 }
@@ -140,6 +142,22 @@ export function notifyBookingReminder(context: NotifyContext): Promise<void> {
   return dispatchManualWhatsAppEvent("booking_reminder", context);
 }
 
+export function notifyBookingReturnReminder(context: NotifyContext): Promise<void> {
+  return dispatchManualWhatsAppEvent("booking_return_reminder", context);
+}
+
 export function notifyPaymentReminder(context: NotifyContext): Promise<void> {
   return dispatchManualWhatsAppEvent("payment_reminder", context);
+}
+
+export function notifyCustomisationBillSent(context: NotifyContext): Promise<void> {
+  return dispatchAutoWhatsAppEvent(
+    "customisation_bill_sent",
+    "autoSendOnCustomisationBillSent",
+    context
+  );
+}
+
+export function notifySaleBillSent(context: NotifyContext): Promise<void> {
+  return dispatchAutoWhatsAppEvent("sale_bill_sent", "autoSendOnSaleBillSent", context);
 }

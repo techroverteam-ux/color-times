@@ -5,7 +5,7 @@ import "@/models/Product";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
-import { notifyBookingReminder } from "@/lib/notifications/whatsapp-events";
+import { notifyBookingReminder, notifyBookingReturnReminder } from "@/lib/notifications/whatsapp-events";
 import { formatDate } from "@/lib/utils";
 
 export async function POST(
@@ -33,18 +33,32 @@ export async function POST(
       .filter(Boolean)
       .join(", ");
 
-    await notifyBookingReminder({
-      customerName: customer?.name ?? "Customer",
-      customerPhone: customer?.phone,
-      relatedEntityType: "Booking",
-      relatedEntityId: id,
-      variables: {
-        bookingNumber: booking.bookingNumber,
-        productName: productNames,
-        eventDate: formatDate(booking.eventDate),
-        rentalStartDate: formatDate(booking.rentalStartDate),
-      },
-    });
+    if (booking.status === "in_use") {
+      await notifyBookingReturnReminder({
+        customerName: customer?.name ?? "Customer",
+        customerPhone: customer?.phone,
+        relatedEntityType: "Booking",
+        relatedEntityId: id,
+        variables: {
+          bookingNumber: booking.bookingNumber,
+          productName: productNames,
+          rentalEndDate: formatDate(booking.rentalEndDate),
+        },
+      });
+    } else {
+      await notifyBookingReminder({
+        customerName: customer?.name ?? "Customer",
+        customerPhone: customer?.phone,
+        relatedEntityType: "Booking",
+        relatedEntityId: id,
+        variables: {
+          bookingNumber: booking.bookingNumber,
+          productName: productNames,
+          eventDate: formatDate(booking.eventDate),
+          rentalStartDate: formatDate(booking.rentalStartDate),
+        },
+      });
+    }
 
     return apiSuccess({ sent: true });
   } catch (error) {

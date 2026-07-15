@@ -5,6 +5,8 @@ import { Booking } from "@/models/Booking";
 import { Invoice } from "@/models/Invoice";
 import { User } from "@/models/User";
 import { ServiceOrder } from "@/models/ServiceOrder";
+import { CustomisationOrder } from "@/models/CustomisationOrder";
+import { Sale } from "@/models/Sale";
 import "@/models/Category";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
@@ -269,7 +271,7 @@ async function buildServicesReport(
     ServiceOrder.countDocuments(filter),
     ServiceOrder.aggregate([
       { $match: filter },
-      { $group: { _id: null, total: { $sum: "$cost" } } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
     ServiceOrder.countDocuments({ ...filter, status: "completed" }),
     ServiceOrder.countDocuments({ ...filter, status: { $in: ["pending", "in_progress"] } }),
@@ -286,7 +288,12 @@ async function buildServicesReport(
     product: (o.product as unknown as { name: string } | null)?.name ?? "—",
     serviceType: o.serviceType,
     description: o.description,
-    cost: o.cost,
+    stitchingType: o.stitchingType ?? "—",
+    dryCleanCharge: o.dryCleanCharge ?? 0,
+    ironCharge: o.ironCharge ?? 0,
+    stitchingCharge: o.stitchingCharge ?? 0,
+    otherCharge: o.otherCharge ?? 0,
+    totalAmount: o.totalAmount,
     status: o.status,
     assignedTo: o.assignedTo ?? "—",
     sentDate: o.sentDate.toISOString(),
@@ -303,6 +310,158 @@ async function buildServicesReport(
     },
     items: mappedItems,
     pagination: buildPagination(totalOrders, page, pageSize, all),
+  };
+}
+
+async function buildCustomisationReport(
+  dateFilter: Record<string, unknown>,
+  status: string | null,
+  page: number,
+  pageSize: number,
+  all: boolean
+) {
+  const filter: Record<string, unknown> = { ...dateFilter, deletedAt: null };
+  if (status && status !== "all") filter.status = status;
+
+  const { skip, limit } = skipLimit(page, pageSize, all);
+
+  const [totalOrders, totalsAgg, orders] = await Promise.all([
+    CustomisationOrder.countDocuments(filter),
+    CustomisationOrder.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$totalAmount" },
+          totalAdvanceCollected: { $sum: "$advancePayment" },
+          totalDue: { $sum: "$dueAmount" },
+        },
+      },
+    ]),
+    CustomisationOrder.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const mappedItems = orders.map((o) => ({
+    _id: String(o._id),
+    billNumber: o.billNumber,
+    customerName: o.customerName,
+    customerPhone: o.customerPhone,
+    stitchingType: o.stitchingType,
+    totalAmount: o.totalAmount,
+    advancePayment: o.advancePayment,
+    dueAmount: o.dueAmount,
+    status: o.status,
+    orderDate: o.orderDate.toISOString(),
+    createdAt: o.createdAt.toISOString(),
+  }));
+
+  return {
+    summary: {
+      totalOrders,
+      totalRevenue: totalsAgg[0]?.totalRevenue ?? 0,
+      totalAdvanceCollected: totalsAgg[0]?.totalAdvanceCollected ?? 0,
+      totalDue: totalsAgg[0]?.totalDue ?? 0,
+    },
+    items: mappedItems,
+    pagination: buildPagination(totalOrders, page, pageSize, all),
+  };
+}
+
+async function buildSaleReport(
+  dateFilter: Record<string, unknown>,
+  page: number,
+  pageSize: number,
+  all: boolean
+) {
+  const filter: Record<string, unknown> = { ...dateFilter, deletedAt: null };
+
+  const { skip, limit } = skipLimit(page, pageSize, all);
+
+  const [totalSales, totalsAgg, sales] = await Promise.all([
+    Sale.countDocuments(filter),
+    Sale.aggregate([
+      { $match: filter },
+      { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
+    ]),
+    Sale.find(filter)
+      .populate("product", "name")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const mappedItems = sales.map((s) => ({
+    _id: String(s._id),
+    billNumber: s.billNumber,
+    customerName: s.customerName,
+    customerPhone: s.customerPhone,
+    product: (s.product as unknown as { name: string } | null)?.name ?? "—",
+    totalAmount: s.totalAmount,
+    saleDate: s.saleDate.toISOString(),
+    createdAt: s.createdAt.toISOString(),
+  }));
+
+  return {
+    summary: {
+      totalSales,
+      totalRevenue: totalsAgg[0]?.totalRevenue ?? 0,
+    },
+    items: mappedItems,
+    pagination: buildPagination(totalSales, page, pageSize, all),
+  };
+}
+
+async function buildPendingReturnsReport(page: number, pageSize: number, all: boolean) {
+  const filter: Record<string, unknown> = { status: { $in: ["confirmed", "in_use"] } };
+  const now = new Date();
+
+  const { skip, limit } = skipLimit(page, pageSize, all);
+
+  const [totalPending, overdueCount, bookings] = await Promise.all([
+    Booking.countDocuments(filter),
+    Booking.countDocuments({ ...filter, rentalEndDate: { $lt: now } }),
+    Booking.find(filter)
+      .populate("customer", "name phone")
+      .populate("items.product", "name")
+      .sort({ rentalEndDate: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const mappedItems = bookings.map((b) => {
+    const rentalEndDate = b.rentalEndDate;
+    const isOverdue = rentalEndDate < now;
+    const daysOverdue = isOverdue
+      ? Math.ceil((now.getTime() - rentalEndDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+    return {
+      _id: String(b._id),
+      bookingNumber: b.bookingNumber,
+      customer: (b.customer as unknown as { name: string } | null)?.name ?? "—",
+      customerPhone: (b.customer as unknown as { phone?: string } | null)?.phone,
+      product:
+        b.items
+          .map((item) => (item.product as unknown as { name: string } | null)?.name)
+          .filter(Boolean)
+          .join(", ") || "—",
+      status: b.status,
+      rentalEndDate: rentalEndDate.toISOString(),
+      isOverdue,
+      daysOverdue,
+      securityDeposit: b.securityDeposit,
+    };
+  });
+
+  return {
+    summary: { totalPending, overdueCount },
+    items: mappedItems,
+    pagination: buildPagination(totalPending, page, pageSize, all),
   };
 }
 
@@ -344,6 +503,15 @@ export async function GET(request: NextRequest): Promise<Response> {
         break;
       case "services":
         report = await buildServicesReport(dateFilter, status, serviceType, page, pageSize, all);
+        break;
+      case "customisation":
+        report = await buildCustomisationReport(dateFilter, status, page, pageSize, all);
+        break;
+      case "sale":
+        report = await buildSaleReport(dateFilter, page, pageSize, all);
+        break;
+      case "pending-returns":
+        report = await buildPendingReturnsReport(page, pageSize, all);
         break;
       default:
         return apiError("Invalid report type", 400);

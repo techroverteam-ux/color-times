@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -54,15 +54,23 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3.5">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel className="text-xs font-semibold">Email address</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="you@example.com" {...field} />
+                <div className="flex items-center gap-2.5 rounded-[10px] border-[1.5px] border-border bg-white px-3.5 py-2.5 transition-colors focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15">
+                  <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="you@colortimes.com"
+                    className="h-auto border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+                    {...field}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -73,16 +81,27 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <FormLabel className="text-xs font-semibold">Password</FormLabel>
               <FormControl>
-                <PasswordInput placeholder="••••••••" {...field} />
+                <div className="flex items-center gap-2.5 rounded-[10px] border-[1.5px] border-border bg-white px-3.5 py-2.5 transition-colors focus-within:border-accent focus-within:ring-3 focus-within:ring-accent/15">
+                  <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <PasswordInput
+                    placeholder="Enter your password"
+                    className="h-auto border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+                    {...field}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" className="w-full rounded-none" disabled={form.formState.isSubmitting}>
+        <Button
+          type="submit"
+          className="mt-2 w-full rounded-[10px] bg-gradient-to-br from-primary to-[#28081a] py-2.5 font-semibold tracking-wide shadow-[0_6px_18px_rgba(61,18,41,0.28)] transition-transform hover:-translate-y-px active:scale-[0.98]"
+          disabled={form.formState.isSubmitting}
+        >
           {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Sign In
         </Button>

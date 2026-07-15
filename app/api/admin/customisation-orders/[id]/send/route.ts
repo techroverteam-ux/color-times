@@ -1,0 +1,44 @@
+import { NextRequest } from "next/server";
+import { connectToDatabase } from "@/lib/db/connect";
+import { CustomisationOrder } from "@/models/CustomisationOrder";
+import { requireApiRole } from "@/lib/api/require-role";
+import { ADMIN_ROLES } from "@/lib/auth/roles";
+import { notifyCustomisationBillSent } from "@/lib/notifications/whatsapp-events";
+import { siteConfig } from "@/lib/config/site";
+import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const auth = await requireApiRole(ADMIN_ROLES);
+  if ("error" in auth) return auth.error;
+
+  try {
+    const { id } = await params;
+    await connectToDatabase();
+
+    const order = await CustomisationOrder.findById(id).lean();
+    if (!order || order.deletedAt) {
+      return apiError("Customisation order not found", 404);
+    }
+
+    void notifyCustomisationBillSent({
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      relatedEntityType: "CustomisationOrder",
+      relatedEntityId: id,
+      variables: {
+        billNumber: order.billNumber,
+        totalAmount: String(order.totalAmount),
+        advancePayment: String(order.advancePayment),
+        dueAmount: String(order.dueAmount),
+        billPdfUrl: `${siteConfig.url}/api/customisation-orders/${id}/pdf`,
+      },
+    });
+
+    return apiSuccess({ sent: true });
+  } catch (error) {
+    return apiErrorFromUnknown(error);
+  }
+}

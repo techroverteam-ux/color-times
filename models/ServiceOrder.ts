@@ -10,7 +10,12 @@ export interface IServiceOrder extends Document {
   booking?: Types.ObjectId | null;
   description: string;
   status: ServiceOrderStatus;
-  cost: number;
+  dryCleanCharge?: number;
+  ironCharge?: number;
+  stitchingCharge?: number;
+  stitchingType?: string;
+  otherCharge?: number;
+  totalAmount: number;
   assignedTo?: string;
   sentDate: Date;
   expectedReturnDate: Date;
@@ -33,7 +38,12 @@ const serviceOrderSchema = new Schema<IServiceOrder>(
       default: "pending",
       index: true,
     },
-    cost: { type: Number, required: true, min: 0, default: 0 },
+    dryCleanCharge: { type: Number, min: 0 },
+    ironCharge: { type: Number, min: 0 },
+    stitchingCharge: { type: Number, min: 0 },
+    stitchingType: { type: String, trim: true },
+    otherCharge: { type: Number, min: 0 },
+    totalAmount: { type: Number, required: true, min: 0, default: 0 },
     assignedTo: { type: String, trim: true },
     sentDate: { type: Date, required: true },
     expectedReturnDate: { type: Date, required: true },

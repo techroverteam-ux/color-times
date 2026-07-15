@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/form";
 import {
   serviceOrderSchema,
+  computeServiceOrderTotal,
   type ServiceOrderInput,
 } from "@/lib/validations/service-order";
 
@@ -43,7 +44,12 @@ export interface ServiceOrderRow {
   product: { _id: string; name: string; sku: string } | null;
   description: string;
   status: string;
-  cost: number;
+  dryCleanCharge?: number;
+  ironCharge?: number;
+  stitchingCharge?: number;
+  stitchingType?: string;
+  otherCharge?: number;
+  totalAmount: number;
   assignedTo?: string;
   sentDate: string;
   expectedReturnDate: string;
@@ -65,7 +71,11 @@ const EMPTY_VALUES: ServiceOrderInput = {
   product: "",
   booking: "",
   description: "",
-  cost: 0,
+  dryCleanCharge: 0,
+  ironCharge: 0,
+  stitchingCharge: undefined,
+  stitchingType: "",
+  otherCharge: 0,
   assignedTo: "",
   sentDate: new Date().toISOString().slice(0, 10),
   expectedReturnDate: new Date().toISOString().slice(0, 10),
@@ -105,7 +115,11 @@ export function ServiceOrderFormDialog({
           serviceType: editingOrder.serviceType,
           product: editingOrder.product?._id ?? "",
           description: editingOrder.description,
-          cost: editingOrder.cost,
+          dryCleanCharge: editingOrder.dryCleanCharge ?? 0,
+          ironCharge: editingOrder.ironCharge ?? 0,
+          stitchingCharge: editingOrder.stitchingCharge ?? 0,
+          stitchingType: editingOrder.stitchingType ?? "",
+          otherCharge: editingOrder.otherCharge ?? 0,
           assignedTo: editingOrder.assignedTo ?? "",
           sentDate: toDateInputValue(editingOrder.sentDate),
           expectedReturnDate: toDateInputValue(editingOrder.expectedReturnDate),
@@ -128,7 +142,19 @@ export function ServiceOrderFormDialog({
 
   const productValue = form.watch("product");
   const serviceTypeValue = form.watch("serviceType");
+  const dryCleanCharge = form.watch("dryCleanCharge");
+  const ironCharge = form.watch("ironCharge");
+  const stitchingCharge = form.watch("stitchingCharge");
+  const otherCharge = form.watch("otherCharge");
   const selectedProduct = products.find((p) => p._id === productValue);
+
+  const total = computeServiceOrderTotal({
+    serviceType: serviceTypeValue,
+    dryCleanCharge,
+    ironCharge,
+    stitchingCharge,
+    otherCharge,
+  });
 
   const mutation = useMutation({
     mutationFn: async (values: ServiceOrderInput) => {
@@ -163,57 +189,36 @@ export function ServiceOrderFormDialog({
             onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
             className="space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="serviceType"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Service Type</FormLabel>
-                    <Select
-                      value={serviceTypeValue}
-                      onValueChange={(value) =>
-                        form.setValue("serviceType", value as "dry_clean" | "tailor")
-                      }
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-full">
-                          <SelectValue>
-                            {(value: "dry_clean" | "tailor") =>
-                              value === "dry_clean" ? "Dry Clean" : "Tailor / Alteration"
-                            }
-                          </SelectValue>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="dry_clean">Dry Clean</SelectItem>
-                        <SelectItem value="tailor">Tailor / Alteration</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cost (₹)</FormLabel>
+            <FormField
+              control={form.control}
+              name="serviceType"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Service Type</FormLabel>
+                  <Select
+                    value={serviceTypeValue}
+                    onValueChange={(value) =>
+                      form.setValue("serviceType", value as "dry_clean" | "tailor")
+                    }
+                  >
                     <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={field.value}
-                        onChange={(event) => field.onChange(Number(event.target.value))}
-                      />
+                      <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {(value: "dry_clean" | "tailor") =>
+                            value === "dry_clean" ? "Dry Clean" : "Tailor / Alteration"
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <SelectContent>
+                      <SelectItem value="dry_clean">Dry Clean</SelectItem>
+                      <SelectItem value="tailor">Tailor / Alteration</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -263,6 +268,109 @@ export function ServiceOrderFormDialog({
                 </FormItem>
               )}
             />
+
+            {serviceTypeValue === "tailor" && (
+              <FormField
+                control={form.control}
+                name="stitchingType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stitching Type</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Blouse, Lehenga, Alteration" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {serviceTypeValue === "dry_clean" ? (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="dryCleanCharge"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dry Clean Charge (₹)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={field.value ?? 0}
+                          onChange={(event) => field.onChange(Number(event.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="ironCharge"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Iron Charge (₹)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={field.value ?? 0}
+                          onChange={(event) => field.onChange(Number(event.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            ) : (
+              <FormField
+                control={form.control}
+                name="stitchingCharge"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stitching Charge (₹)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={field.value ?? 0}
+                        onChange={(event) => field.onChange(Number(event.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="otherCharge"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Other Charge (₹)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={field.value ?? 0}
+                        onChange={(event) => field.onChange(Number(event.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormItem>
+                <FormLabel>Total Amount</FormLabel>
+                <div className="flex h-9 items-center rounded-md border border-border bg-secondary/40 px-3 text-sm font-medium">
+                  ₹{total.toLocaleString("en-IN")}
+                </div>
+              </FormItem>
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

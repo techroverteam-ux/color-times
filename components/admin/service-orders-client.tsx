@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import {
@@ -19,7 +20,7 @@ import {
   type ServiceOrderRow,
 } from "@/components/admin/service-order-form-dialog";
 import { formatDate } from "@/lib/utils";
-import type { ServiceOrderStatus } from "@/models/ServiceOrder";
+import type { ServiceOrderStatus, ServiceType } from "@/models/ServiceOrder";
 
 interface ProductOption {
   _id: string;
@@ -42,15 +43,22 @@ const STATUS_OPTIONS: ServiceOrderStatus[] = [
   "cancelled",
 ];
 
+function formatCurrency(value?: number): string {
+  return `₹${(value ?? 0).toLocaleString("en-IN")}`;
+}
+
 async function fetchServiceOrders(params: {
   page: number;
   status: string;
-  serviceType: string;
+  serviceType: ServiceType;
   view: string;
 }): Promise<{ orders: ServiceOrderRow[]; pagination: Pagination }> {
-  const searchParams = new URLSearchParams({ page: String(params.page), view: params.view });
+  const searchParams = new URLSearchParams({
+    page: String(params.page),
+    view: params.view,
+    serviceType: params.serviceType,
+  });
   if (params.status !== "all") searchParams.set("status", params.status);
-  if (params.serviceType !== "all") searchParams.set("serviceType", params.serviceType);
 
   const res = await fetch(`/api/admin/service-orders?${searchParams.toString()}`);
   const json = await res.json();
@@ -70,14 +78,15 @@ export function ServiceOrdersClient({
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("all");
-  const [serviceType, setServiceType] = useState("all");
+  const [serviceType, setServiceType] = useState<ServiceType>("dry_clean");
   const [view, setView] = useState<"active" | "trash">("active");
   const [layout, setLayout] = useState<"table" | "card">("table");
   const [formOpen, setFormOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<ServiceOrderRow | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const isDefaultQuery = page === 1 && status === "all" && serviceType === "all" && view === "active";
+  const isDefaultQuery =
+    page === 1 && status === "all" && serviceType === "dry_clean" && view === "active";
 
   const { data } = useQuery({
     queryKey: ["admin", "service-orders", { page, status, serviceType, view }],
@@ -138,13 +147,34 @@ export function ServiceOrdersClient({
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {order.serviceType === "dry_clean" ? "Dry Clean" : "Tailor / Alteration"}
+            {serviceType === "dry_clean" ? "Dry Clean" : order.stitchingType || "Tailor / Alteration"}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">{order.description}</p>
           <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+            {serviceType === "dry_clean" ? (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground">Dry Clean</p>
+                  <p>{formatCurrency(order.dryCleanCharge)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Iron</p>
+                  <p>{formatCurrency(order.ironCharge)}</p>
+                </div>
+              </>
+            ) : (
+              <div>
+                <p className="text-xs text-muted-foreground">Stitching</p>
+                <p>{formatCurrency(order.stitchingCharge)}</p>
+              </div>
+            )}
             <div>
-              <p className="text-xs text-muted-foreground">Cost</p>
-              <p>₹{order.cost.toLocaleString("en-IN")}</p>
+              <p className="text-xs text-muted-foreground">Other</p>
+              <p>{formatCurrency(order.otherCharge)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="font-medium">{formatCurrency(order.totalAmount)}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Assigned To</p>
@@ -224,31 +254,20 @@ export function ServiceOrdersClient({
         </Button>
       </div>
 
+      <Tabs
+        value={serviceType}
+        onValueChange={(value) => {
+          setServiceType((value as ServiceType) ?? "dry_clean");
+          setPage(1);
+        }}
+      >
+        <TabsList>
+          <TabsTrigger value="dry_clean">Dry Clean</TabsTrigger>
+          <TabsTrigger value="tailor">Tailor / Alteration</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="flex flex-wrap items-center gap-3">
-        <Select
-          value={serviceType}
-          onValueChange={(value) => {
-            setServiceType(value ?? "all");
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-44">
-            <SelectValue>
-              {(value: string) =>
-                value === "all"
-                  ? "All Types"
-                  : value === "dry_clean"
-                    ? "Dry Clean"
-                    : "Tailor / Alteration"
-              }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="dry_clean">Dry Clean</SelectItem>
-            <SelectItem value="tailor">Tailor / Alteration</SelectItem>
-          </SelectContent>
-        </Select>
         <Select
           value={status}
           onValueChange={(value) => {
@@ -311,13 +330,24 @@ export function ServiceOrdersClient({
         <div className="hidden lg:block">{cardGrid}</div>
       ) : (
       <div className="hidden overflow-x-auto rounded-lg border border-border bg-card lg:block">
-        <table className="w-full min-w-[640px] text-sm whitespace-nowrap">
+        <table className="w-full min-w-[820px] text-sm whitespace-nowrap">
           <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3">Product</th>
-              <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Description</th>
-              <th className="px-4 py-3">Cost</th>
+              {serviceType === "dry_clean" ? (
+                <>
+                  <th className="px-4 py-3">Dry Clean</th>
+                  <th className="px-4 py-3">Iron</th>
+                </>
+              ) : (
+                <>
+                  <th className="px-4 py-3">Stitching Type</th>
+                  <th className="px-4 py-3">Stitching</th>
+                </>
+              )}
+              <th className="px-4 py-3">Other</th>
+              <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3">Assigned To</th>
               <th className="px-4 py-3">Expected Return</th>
               <th className="px-4 py-3">Status</th>
@@ -328,11 +358,20 @@ export function ServiceOrdersClient({
             {orders.map((order) => (
               <tr key={order._id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 font-medium">{order.product?.name ?? "—"}</td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {order.serviceType === "dry_clean" ? "Dry Clean" : "Tailor / Alteration"}
-                </td>
                 <td className="px-4 py-3 text-muted-foreground">{order.description}</td>
-                <td className="px-4 py-3">₹{order.cost.toLocaleString("en-IN")}</td>
+                {serviceType === "dry_clean" ? (
+                  <>
+                    <td className="px-4 py-3">{formatCurrency(order.dryCleanCharge)}</td>
+                    <td className="px-4 py-3">{formatCurrency(order.ironCharge)}</td>
+                  </>
+                ) : (
+                  <>
+                    <td className="px-4 py-3 text-muted-foreground">{order.stitchingType ?? "—"}</td>
+                    <td className="px-4 py-3">{formatCurrency(order.stitchingCharge)}</td>
+                  </>
+                )}
+                <td className="px-4 py-3">{formatCurrency(order.otherCharge)}</td>
+                <td className="px-4 py-3 font-medium">{formatCurrency(order.totalAmount)}</td>
                 <td className="px-4 py-3 text-muted-foreground">{order.assignedTo ?? "—"}</td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                   {formatDate(order.expectedReturnDate)}
@@ -392,7 +431,7 @@ export function ServiceOrdersClient({
             ))}
             {orders.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                   No service orders found.
                 </td>
               </tr>

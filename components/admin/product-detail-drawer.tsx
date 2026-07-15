@@ -13,6 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuditLogList } from "@/components/admin/audit-log-list";
+import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
+import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
+import { ProductAvailabilityCalendar } from "@/components/admin/product-availability-calendar";
+import { formatDate } from "@/lib/utils";
+import type { BookingStatus } from "@/models/Booking";
+import type { ServiceOrderStatus } from "@/models/ServiceOrder";
 
 interface ProductDetail {
   _id: string;
@@ -32,11 +38,43 @@ interface ProductDetail {
   tags: string[];
 }
 
+interface ProductHistoryBooking {
+  _id: string;
+  bookingNumber: string;
+  customerName: string;
+  status: BookingStatus;
+  rentalStartDate: string;
+  rentalEndDate: string;
+  totalAmount: number;
+}
+
+interface ProductHistoryServiceOrder {
+  _id: string;
+  serviceType: "dry_clean" | "tailor";
+  status: ServiceOrderStatus;
+  sentDate: string;
+  expectedReturnDate: string;
+  totalAmount: number;
+}
+
+interface ProductHistory {
+  bookings: ProductHistoryBooking[];
+  serviceOrders: ProductHistoryServiceOrder[];
+  activeRanges: { bookingNumber: string; rentalStartDate: string; rentalEndDate: string }[];
+}
+
 async function fetchProduct(id: string): Promise<ProductDetail> {
   const res = await fetch(`/api/admin/products/${id}`);
   const json = await res.json();
   if (!res.ok) throw new Error(json.error);
   return json.data.product;
+}
+
+async function fetchProductHistory(id: string): Promise<ProductHistory> {
+  const res = await fetch(`/api/admin/products/${id}/history`);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error);
+  return json.data;
 }
 
 export function ProductDetailDrawer({
@@ -49,6 +87,12 @@ export function ProductDetailDrawer({
   const { data: product, isLoading } = useQuery({
     queryKey: ["admin", "product-detail", productId],
     queryFn: () => fetchProduct(productId as string),
+    enabled: Boolean(productId),
+  });
+
+  const { data: history } = useQuery({
+    queryKey: ["admin", "product-history", productId],
+    queryFn: () => fetchProductHistory(productId as string),
     enabled: Boolean(productId),
   });
 
@@ -91,6 +135,12 @@ export function ProductDetailDrawer({
                 <TabsList className="w-full">
                   <TabsTrigger value="details" className="flex-1">
                     Details
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="flex-1">
+                    History
+                  </TabsTrigger>
+                  <TabsTrigger value="availability" className="flex-1">
+                    Availability
                   </TabsTrigger>
                   <TabsTrigger value="activity" className="flex-1">
                     Activity
@@ -170,6 +220,72 @@ export function ProductDetailDrawer({
                   <ButtonLink href={`/admin/products/${product._id}`} className="w-full">
                     Edit Full Details
                   </ButtonLink>
+                </TabsContent>
+
+                <TabsContent value="history" className="space-y-5">
+                  <div>
+                    <p className="text-xs uppercase text-muted-foreground">
+                      Bookings ({history?.bookings.length ?? 0})
+                    </p>
+                    <div className="mt-2 space-y-2">
+                      {!history || history.bookings.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-muted-foreground">
+                          No bookings for this dress yet.
+                        </p>
+                      ) : (
+                        history.bookings.map((booking) => (
+                          <div
+                            key={booking._id}
+                            className="rounded-lg border border-border p-3 text-sm"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium">{booking.bookingNumber}</span>
+                              <BookingStatusBadge status={booking.status} />
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {booking.customerName} &middot; {formatDate(booking.rentalStartDate)} to{" "}
+                              {formatDate(booking.rentalEndDate)}
+                            </p>
+                            <p className="mt-1 text-xs">
+                              &#8377;{booking.totalAmount.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase text-muted-foreground">
+                      Dry Clean &amp; Repair ({history?.serviceOrders.length ?? 0})
+                    </p>
+                    <div className="mt-2 space-y-2">
+                      {!history || history.serviceOrders.length === 0 ? (
+                        <p className="py-4 text-center text-sm text-muted-foreground">
+                          No dry-clean or repair orders for this dress yet.
+                        </p>
+                      ) : (
+                        history.serviceOrders.map((order) => (
+                          <div key={order._id} className="rounded-lg border border-border p-3 text-sm">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium">
+                                {order.serviceType === "dry_clean" ? "Dry Clean" : "Tailor / Alteration"}
+                              </span>
+                              <ServiceOrderStatusBadge status={order.status} />
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Sent {formatDate(order.sentDate)} &middot; Expected{" "}
+                              {formatDate(order.expectedReturnDate)}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="availability">
+                  <ProductAvailabilityCalendar activeRanges={history?.activeRanges ?? []} />
                 </TabsContent>
 
                 <TabsContent value="activity">

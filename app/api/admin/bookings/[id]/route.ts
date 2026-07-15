@@ -2,8 +2,9 @@ import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Booking } from "@/models/Booking";
 import { Product } from "@/models/Product";
+import { ServiceOrder } from "@/models/ServiceOrder";
 import "@/models/User";
-import { bookingStatusSchema } from "@/lib/validations/booking";
+import { bookingStatusSchema, computeBookingSettlement } from "@/lib/validations/booking";
 import { ACTIVE_BOOKING_STATUSES } from "@/lib/admin/booking-availability";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
@@ -60,6 +61,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
       update.returnedAt = new Date();
       if (input.returnCondition) update.returnCondition = input.returnCondition;
       if (input.returnNotes) update.returnNotes = input.returnNotes;
+
+      const rentalFeesTotal = before.totalAmount - before.securityDeposit;
+      const damageCharges = input.damageCharges ?? 0;
+      const pendingRentAmount =
+        input.pendingRentAmount ?? Math.max(0, rentalFeesTotal - (before.advancePaid ?? 0));
+      const { depositRefundAmount, finalSettlementAmount } = computeBookingSettlement({
+        securityDeposit: before.securityDeposit,
+        damageCharges,
+        pendingRentAmount,
+      });
+
+      update.dryCleaningRequired = input.dryCleaningRequired ?? false;
+      update.stitchingRequired = input.stitchingRequired ?? false;
+      update.damageCharges = damageCharges;
+      update.pendingRentAmount = pendingRentAmount;
+      update.depositRefunded = input.depositRefunded ?? false;
+      update.depositRefundAmount = depositRefundAmount;
+      update.finalSettlementAmount = finalSettlementAmount;
+      update.settledAt = new Date();
     }
 
     const booking = await Booking.findByIdAndUpdate(id, update, { returnDocument: "after" })
@@ -82,10 +102,47 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
 
     // Keep each dress's inventory status in sync with the booking lifecycle.
     const productIds = booking.items.map((item) => item.product);
-    if (input.status === "confirmed" || input.status === "in_use") {
-      await Product.updateMany({ _id: { $in: productIds } }, { status: "booked" });
+    if (input.status === "confirmed") {
+      await Product.updateMany({ _id: { $in: productIds } }, { status: "reserved" });
+    } else if (input.status === "in_use") {
+      await Product.updateMany({ _id: { $in: productIds } }, { status: "picked_up" });
     } else if (input.status === "returned") {
-      await Product.updateMany({ _id: { $in: productIds } }, { status: "returned" });
+      const serviceTypesNeeded: Array<"dry_clean" | "tailor"> = [];
+      if (input.dryCleaningRequired) serviceTypesNeeded.push("dry_clean");
+      if (input.stitchingRequired) serviceTypesNeeded.push("tailor");
+
+      if (serviceTypesNeeded.length > 0) {
+        for (const productId of productIds) {
+          for (const serviceType of serviceTypesNeeded) {
+            const sentDate = new Date();
+            const expectedReturnDate = new Date(sentDate);
+            expectedReturnDate.setDate(expectedReturnDate.getDate() + 3);
+            const serviceOrder = await ServiceOrder.create({
+              serviceType,
+              product: productId,
+              booking: booking._id,
+              description: `Flagged at return of booking ${booking.bookingNumber}`,
+              stitchingType: serviceType === "tailor" ? "Alteration" : undefined,
+              totalAmount: 0,
+              sentDate,
+              expectedReturnDate,
+              status: "pending",
+            });
+            await recordAuditLog({
+              entityType: "ServiceOrder",
+              entityId: String(serviceOrder._id),
+              action: "create",
+              actor: auth.user,
+              snapshot: serviceOrder.toObject() as unknown as Record<string, unknown>,
+            });
+          }
+          await Product.findByIdAndUpdate(productId, {
+            status: serviceTypesNeeded.includes("dry_clean") ? "under_dry_cleaning" : "under_repair",
+          });
+        }
+      } else {
+        await Product.updateMany({ _id: { $in: productIds } }, { status: "available" });
+      }
     } else if (input.status === "cancelled") {
       for (const productId of productIds) {
         const stillActive = await Booking.exists({

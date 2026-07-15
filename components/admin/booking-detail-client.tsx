@@ -24,7 +24,7 @@ import {
 import { formatDate } from "@/lib/utils";
 import type { BookingStatus, ReturnCondition } from "@/models/Booking";
 
-const REMINDABLE_STATUSES: BookingStatus[] = ["inquiry", "pending_payment", "confirmed"];
+const REMINDABLE_STATUSES: BookingStatus[] = ["inquiry", "pending_payment", "confirmed", "in_use"];
 
 const STATUS_OPTIONS: BookingStatus[] = [
   "inquiry",
@@ -61,11 +61,19 @@ interface BookingDetail {
   eventDate: string;
   securityDeposit: number;
   totalAmount: number;
+  advancePaid?: number;
   deliveryAddress: string;
   notes?: string;
   returnCondition?: ReturnCondition;
   returnNotes?: string;
   returnedAt?: string | null;
+  dryCleaningRequired?: boolean;
+  stitchingRequired?: boolean;
+  damageCharges?: number;
+  pendingRentAmount?: number;
+  depositRefunded?: boolean;
+  depositRefundAmount?: number;
+  finalSettlementAmount?: number;
   createdAt: string;
 }
 
@@ -148,7 +156,7 @@ export function BookingDetailClient({ initialBooking }: { initialBooking: Bookin
               ) : (
                 <Bell className="h-4 w-4" />
               )}
-              Send Reminder
+              {booking.status === "in_use" ? "Send Return Reminder" : "Send Reminder"}
             </Button>
           )}
           <Select
@@ -277,6 +285,12 @@ export function BookingDetailClient({ initialBooking }: { initialBooking: Bookin
                   <span>Total</span>
                   <span>{formatCurrency(booking.totalAmount)}</span>
                 </p>
+                {Boolean(booking.advancePaid) && (
+                  <p className="flex justify-between">
+                    <span className="text-muted-foreground">Advance Paid</span>
+                    <span>{formatCurrency(booking.advancePaid ?? 0)}</span>
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -311,6 +325,52 @@ export function BookingDetailClient({ initialBooking }: { initialBooking: Bookin
                 )}
                 {booking.returnNotes && (
                   <p className="mt-2 text-muted-foreground">{booking.returnNotes}</p>
+                )}
+                {(booking.dryCleaningRequired || booking.stitchingRequired) && (
+                  <p className="text-muted-foreground">
+                    Sent to Services:{" "}
+                    {[
+                      booking.dryCleaningRequired && "Dry cleaning",
+                      booking.stitchingRequired && "Stitching / repair",
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                )}
+                {booking.returnedAt && (
+                  <>
+                    <div className="my-2 border-t border-border" />
+                    <p className="flex justify-between">
+                      <span className="text-muted-foreground">Damage Charges</span>
+                      <span>{formatCurrency(booking.damageCharges ?? 0)}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-muted-foreground">Pending Rent</span>
+                      <span>{formatCurrency(booking.pendingRentAmount ?? 0)}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-muted-foreground">Deposit Refunded</span>
+                      <span>
+                        {booking.depositRefunded
+                          ? formatCurrency(booking.depositRefundAmount ?? 0)
+                          : "Not yet"}
+                      </span>
+                    </p>
+                    <p className="flex justify-between font-medium">
+                      <span>
+                        {(booking.finalSettlementAmount ?? 0) > 0
+                          ? "Customer still owes"
+                          : "Net refund to customer"}
+                      </span>
+                      <span>
+                        {formatCurrency(
+                          (booking.finalSettlementAmount ?? 0) > 0
+                            ? (booking.finalSettlementAmount ?? 0)
+                            : Math.abs(booking.finalSettlementAmount ?? 0)
+                        )}
+                      </span>
+                    </p>
+                  </>
                 )}
               </div>
             </div>

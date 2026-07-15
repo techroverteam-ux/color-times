@@ -109,6 +109,8 @@ export async function POST(request: NextRequest): Promise<Response> {
       status: "inquiry",
       securityDeposit,
       totalAmount,
+      advancePaid: input.advancePaid ?? 0,
+      measurements: input.measurements,
       deliveryAddress: input.deliveryAddress,
       notes: input.notes || undefined,
     });

@@ -7,6 +7,15 @@ import {
   ArrowUpRight,
   Receipt,
   RotateCcw,
+  Package,
+  CheckCircle2,
+  BookmarkCheck,
+  CalendarPlus,
+  PackageCheck,
+  Undo2,
+  CheckCheck,
+  Wallet,
+  TrendingUp,
 } from "lucide-react";
 import { getDashboardStats } from "@/lib/admin/dashboard-stats";
 import { StatCard } from "@/components/admin/stat-card";
@@ -62,6 +71,58 @@ export default async function AdminDashboardPage() {
             value={stats.totalCustomers.toLocaleString("en-IN")}
             icon={Users}
           />
+        </div>
+
+        <div>
+          <h2 className="font-heading text-lg">Inventory &amp; Today</h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <StatCard
+              label="Total Dresses"
+              value={stats.totalProducts.toLocaleString("en-IN")}
+              icon={Package}
+            />
+            <StatCard
+              label="Available Dresses"
+              value={stats.availableDresses.toLocaleString("en-IN")}
+              icon={CheckCircle2}
+            />
+            <StatCard
+              label="Reserved Dresses"
+              value={stats.reservedDresses.toLocaleString("en-IN")}
+              icon={BookmarkCheck}
+            />
+            <StatCard
+              label="Today's Bookings"
+              value={stats.todaysBookings.toLocaleString("en-IN")}
+              icon={CalendarPlus}
+            />
+            <StatCard
+              label="Today's Pickups"
+              value={stats.todaysPickups.toLocaleString("en-IN")}
+              icon={PackageCheck}
+            />
+            <StatCard
+              label="Today's Returns Due"
+              value={stats.todaysReturns.toLocaleString("en-IN")}
+              icon={Undo2}
+            />
+            <StatCard
+              label="Returned Today"
+              value={stats.returnedToday.toLocaleString("en-IN")}
+              icon={CheckCheck}
+            />
+            <StatCard
+              label="Pending Payments"
+              value={stats.pendingPaymentsCount.toLocaleString("en-IN")}
+              icon={Wallet}
+              hint="Invoices sent, partially paid or overdue"
+            />
+            <StatCard
+              label="Revenue This Month"
+              value={`₹${stats.monthlyRevenueTotal.toLocaleString("en-IN")}`}
+              icon={TrendingUp}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

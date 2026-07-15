@@ -136,6 +136,8 @@ export function WhatsAppSettingsForm({
                   ["autoSendOnBookingCancelled", "Booking Cancelled"],
                   ["autoSendOnInvoiceSent", "Invoice Sent"],
                   ["autoSendOnPaymentReceived", "Payment Received"],
+                  ["autoSendOnCustomisationBillSent", "Customisation Bill Sent"],
+                  ["autoSendOnSaleBillSent", "Sale Bill Sent"],
                 ] as const
               ).map(([name, label]) => (
                 <FormField

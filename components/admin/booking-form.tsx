@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/form";
 import { bookingCreateSchema, type BookingCreateInput } from "@/lib/validations/booking";
 import { daysBetween } from "@/lib/utils";
+import { MEASUREMENT_FIELD_DEFS } from "@/lib/config/measurement-fields";
 
 interface CustomerOption {
   _id: string;
@@ -239,6 +240,7 @@ export function BookingForm({
       rentalEndDate: "",
       eventDate: "",
       deliveryAddress: "",
+      advancePaid: 0,
       notes: "",
     },
   });
@@ -411,6 +413,56 @@ export function BookingForm({
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Total (rental + deposit)</span>
             <span className="font-heading text-xl">{formatCurrency(total)}</span>
+          </div>
+          <div className="mt-4 max-w-xs">
+            <FormField
+              control={form.control}
+              name="advancePaid"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Advance Paid (&#8377;)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={field.value ?? 0}
+                      onChange={(event) => field.onChange(Number(event.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-border bg-card p-6">
+          <p className="text-sm font-medium">Measurements (inches, optional)</p>
+          <div className="mt-2 grid grid-cols-3 gap-3">
+            {MEASUREMENT_FIELD_DEFS.map(({ key, label }) => (
+              <FormField
+                key={key}
+                control={form.control}
+                name={`measurements.${key}` as const}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">{label}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={(field.value as number | undefined) ?? ""}
+                        onChange={(event) =>
+                          field.onChange(
+                            event.target.value === "" ? undefined : Number(event.target.value)
+                          )
+                        }
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            ))}
           </div>
         </section>
 

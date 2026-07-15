@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ReturnCondition } from "@/models/Booking";
+import { cn } from "@/lib/utils";
 
 const CONDITION_OPTIONS: { value: ReturnCondition; label: string }[] = [
   { value: "good", label: "Good — no issues" },
@@ -29,6 +32,16 @@ const CONDITION_OPTIONS: { value: ReturnCondition; label: string }[] = [
   { value: "major_damage", label: "Major damage" },
   { value: "missing_items", label: "Missing items" },
 ];
+
+interface BookingFinancials {
+  totalAmount: number;
+  securityDeposit: number;
+  advancePaid: number;
+}
+
+function formatCurrency(value: number): string {
+  return `₹${Math.round(value).toLocaleString("en-IN")}`;
+}
 
 export function ReturnBookingDialog({
   bookingId,
@@ -44,6 +57,37 @@ export function ReturnBookingDialog({
   const queryClient = useQueryClient();
   const [condition, setCondition] = useState<ReturnCondition>("good");
   const [notes, setNotes] = useState("");
+  const [dryCleaningRequired, setDryCleaningRequired] = useState(false);
+  const [stitchingRequired, setStitchingRequired] = useState(false);
+  const [damageCharges, setDamageCharges] = useState(0);
+  const [pendingRentOverride, setPendingRentOverride] = useState<number | null>(null);
+  const [depositRefunded, setDepositRefunded] = useState(true);
+
+  const { data: financials } = useQuery<BookingFinancials | null>({
+    queryKey: ["admin", "booking", bookingId, "financials"],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/bookings/${bookingId}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      const booking = json.data.booking;
+      return {
+        totalAmount: booking.totalAmount,
+        securityDeposit: booking.securityDeposit,
+        advancePaid: booking.advancePaid ?? 0,
+      };
+    },
+    enabled: open && Boolean(bookingId),
+  });
+
+  const securityDeposit = financials?.securityDeposit ?? 0;
+  const pendingRentDefault = financials
+    ? Math.max(0, financials.totalAmount - financials.securityDeposit - financials.advancePaid)
+    : 0;
+  const pendingRentAmount = pendingRentOverride ?? pendingRentDefault;
+  const amountOwed = damageCharges + pendingRentAmount;
+  const netPosition = amountOwed - securityDeposit;
+  const depositRefundAmount = netPosition < 0 ? -netPosition : 0;
+  const finalSettlementAmount = netPosition;
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -54,6 +98,11 @@ export function ReturnBookingDialog({
           status: "returned",
           returnCondition: condition,
           returnNotes: notes,
+          dryCleaningRequired,
+          stitchingRequired,
+          damageCharges,
+          pendingRentAmount,
+          depositRefunded,
         }),
       });
       const json = await res.json();
@@ -64,8 +113,15 @@ export function ReturnBookingDialog({
       toast.success("Booking marked as returned");
       queryClient.invalidateQueries({ queryKey: ["admin", "bookings"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "booking", bookingId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "service-orders"] });
       setCondition("good");
       setNotes("");
+      setDryCleaningRequired(false);
+      setStitchingRequired(false);
+      setDamageCharges(0);
+      setPendingRentOverride(null);
+      setDepositRefunded(true);
       onOpenChange(false);
       onSuccess?.();
     },
@@ -74,11 +130,12 @@ export function ReturnBookingDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !mutation.isPending && onOpenChange(next)}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Mark as returned</DialogTitle>
           <DialogDescription>
-            Record the condition of the dress before closing out this booking.
+            Record the condition, any charges, and settle the security deposit before closing out
+            this booking.
           </DialogDescription>
         </DialogHeader>
 
@@ -101,6 +158,75 @@ export function ReturnBookingDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={dryCleaningRequired}
+                onCheckedChange={(checked) => setDryCleaningRequired(checked === true)}
+              />
+              Dry cleaning required — sends the dress to Services automatically
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={stitchingRequired}
+                onCheckedChange={(checked) => setStitchingRequired(checked === true)}
+              />
+              Stitching / repair required — sends the dress to Services automatically
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Damage charges (&#8377;)</label>
+              <Input
+                className="mt-2"
+                type="number"
+                min={0}
+                value={damageCharges}
+                onChange={(event) => setDamageCharges(Math.max(0, Number(event.target.value)))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Pending rent (&#8377;)</label>
+              <Input
+                className="mt-2"
+                type="number"
+                min={0}
+                value={pendingRentAmount}
+                onChange={(event) => setPendingRentOverride(Math.max(0, Number(event.target.value)))}
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={depositRefunded}
+              onCheckedChange={(checked) => setDepositRefunded(checked === true)}
+            />
+            Refund the remaining security deposit now
+          </label>
+
+          <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Security deposit held</span>
+              <span>{formatCurrency(securityDeposit)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Damage + pending rent</span>
+              <span>{formatCurrency(amountOwed)}</span>
+            </div>
+            <div className="mt-2 flex justify-between border-t border-border pt-2 font-medium">
+              <span>{finalSettlementAmount > 0 ? "Customer still owes" : "Refund to customer"}</span>
+              <span
+                className={cn(
+                  finalSettlementAmount > 0 ? "text-destructive" : "text-emerald-600"
+                )}
+              >
+                {formatCurrency(finalSettlementAmount > 0 ? finalSettlementAmount : depositRefundAmount)}
+              </span>
+            </div>
           </div>
 
           <div>
