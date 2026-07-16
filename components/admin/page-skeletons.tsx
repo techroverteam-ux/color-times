@@ -150,3 +150,62 @@ export function DashboardSkeleton() {
     </div>
   );
 }
+
+/** For Sheet/Dialog detail views that fetch data after opening (product drawer, booking quick view). */
+export function SheetDetailSkeleton() {
+  return (
+    <div className="p-6">
+      <div className="flex items-start justify-between gap-3 pb-4">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </div>
+
+      <div className="flex gap-2 overflow-hidden">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 w-20 shrink-0 rounded-md" />
+        ))}
+      </div>
+
+      <div className="mt-6 flex gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 flex-1 rounded-md" />
+        ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="space-y-1.5">
+            <Skeleton className="h-2.5 w-16" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-3 gap-3 rounded-lg border border-border p-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="space-y-1.5">
+            <Skeleton className="h-2.5 w-14" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** For a small set of dialog fields/inputs that populate after an open-time fetch. */
+export function DialogFieldsSkeleton({ fields = 3 }: { fields?: number }) {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: fields }).map((_, i) => (
+        <div key={i} className="space-y-1.5">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-9 w-full" />
+        </div>
+      ))}
+    </div>
+  );
+}

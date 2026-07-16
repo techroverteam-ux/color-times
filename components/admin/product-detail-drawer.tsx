@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SheetDetailSkeleton } from "@/components/admin/page-skeletons";
 import { AuditLogList } from "@/components/admin/audit-log-list";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
@@ -100,9 +100,7 @@ export function ProductDetailDrawer({
     <Sheet open={productId !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
         {isLoading || !product ? (
-          <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <SheetDetailSkeleton />
         ) : (
           <>
             <SheetHeader className="border-b border-border pr-10">

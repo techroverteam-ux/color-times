@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +36,7 @@ export function WhatsAppTestDialog() {
   const [phone, setPhone] = useState("");
   const [templateId, setTemplateId] = useState("");
 
-  const { data: templates = [] } = useQuery({
+  const { data: templates = [], isLoading: isLoadingTemplates } = useQuery({
     queryKey: ["admin", "whatsapp", "templates"],
     queryFn: fetchTemplates,
     enabled: open,
@@ -84,30 +85,34 @@ export function WhatsAppTestDialog() {
             </div>
             <div>
               <label className="text-sm font-medium">Template</label>
-              <Select value={templateId} onValueChange={(value) => setTemplateId(value ?? "")}>
-                <SelectTrigger className="mt-2 w-full">
-                  <SelectValue placeholder="Select a template">
-                    {() => selectedTemplate?.name ?? "Select a template"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {templates.length === 0 && (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                      No templates yet.
-                    </div>
-                  )}
-                  {templates.map((template) => (
-                    <SelectItem key={template._id} value={template._id}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLoadingTemplates ? (
+                <Skeleton className="mt-2 h-9 w-full" />
+              ) : (
+                <Select value={templateId} onValueChange={(value) => setTemplateId(value ?? "")}>
+                  <SelectTrigger className="mt-2 w-full">
+                    <SelectValue placeholder="Select a template">
+                      {() => selectedTemplate?.name ?? "Select a template"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.length === 0 && (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No templates yet.
+                      </div>
+                    )}
+                    {templates.map((template) => (
+                      <SelectItem key={template._id} value={template._id}>
+                        {template.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button
-              disabled={!phone || !templateId || mutation.isPending}
+              disabled={!phone || !templateId || mutation.isPending || isLoadingTemplates}
               onClick={() => mutation.mutate()}
             >
               {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

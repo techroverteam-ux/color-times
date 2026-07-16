@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -63,7 +64,7 @@ export function ReturnBookingDialog({
   const [pendingRentOverride, setPendingRentOverride] = useState<number | null>(null);
   const [depositRefunded, setDepositRefunded] = useState(true);
 
-  const { data: financials } = useQuery<BookingFinancials | null>({
+  const { data: financials, isLoading: isLoadingFinancials } = useQuery<BookingFinancials | null>({
     queryKey: ["admin", "booking", bookingId, "financials"],
     queryFn: async () => {
       const res = await fetch(`/api/admin/bookings/${bookingId}`);
@@ -209,24 +210,41 @@ export function ReturnBookingDialog({
           </label>
 
           <div className="rounded-lg border border-border bg-muted/40 p-4 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Security deposit held</span>
-              <span>{formatCurrency(securityDeposit)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Damage + pending rent</span>
-              <span>{formatCurrency(amountOwed)}</span>
-            </div>
-            <div className="mt-2 flex justify-between border-t border-border pt-2 font-medium">
-              <span>{finalSettlementAmount > 0 ? "Customer still owes" : "Refund to customer"}</span>
-              <span
-                className={cn(
-                  finalSettlementAmount > 0 ? "text-destructive" : "text-emerald-600"
-                )}
-              >
-                {formatCurrency(finalSettlementAmount > 0 ? finalSettlementAmount : depositRefundAmount)}
-              </span>
-            </div>
+            {isLoadingFinancials ? (
+              <div className="space-y-2.5">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex justify-between">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-3.5 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Security deposit held</span>
+                  <span>{formatCurrency(securityDeposit)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Damage + pending rent</span>
+                  <span>{formatCurrency(amountOwed)}</span>
+                </div>
+                <div className="mt-2 flex justify-between border-t border-border pt-2 font-medium">
+                  <span>
+                    {finalSettlementAmount > 0 ? "Customer still owes" : "Refund to customer"}
+                  </span>
+                  <span
+                    className={cn(
+                      finalSettlementAmount > 0 ? "text-destructive" : "text-emerald-600"
+                    )}
+                  >
+                    {formatCurrency(
+                      finalSettlementAmount > 0 ? finalSettlementAmount : depositRefundAmount
+                    )}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           <div>
@@ -245,7 +263,10 @@ export function ReturnBookingDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
             Cancel
           </Button>
-          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+          <Button
+            disabled={mutation.isPending || isLoadingFinancials}
+            onClick={() => mutation.mutate()}
+          >
             {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             Confirm Return
           </Button>

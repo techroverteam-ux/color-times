@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Loader2 } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button-link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { formatDate } from "@/lib/utils";
 import type { BookingStatus } from "@/models/Booking";
@@ -54,8 +55,18 @@ export function BookingQuickViewDialog({
         </DialogHeader>
 
         {isLoading || !booking ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-1.5">
+                <Skeleton className="h-2.5 w-16" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+            ))}
+            <Skeleton className="h-9 w-full rounded-lg" />
           </div>
         ) : (
           <div className="space-y-4">
