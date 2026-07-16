@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { AdminPagination } from "@/components/admin/admin-pagination";
 import {
   ServiceOrderFormDialog,
   type ServiceOrderRow,
@@ -441,31 +442,13 @@ export function ServiceOrdersClient({
       </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages} &middot; {pagination.total} orders
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      <AdminPagination
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        total={pagination.total}
+        itemLabel="orders"
+        onPageChange={setPage}
+      />
 
       <ServiceOrderFormDialog
         open={formOpen}

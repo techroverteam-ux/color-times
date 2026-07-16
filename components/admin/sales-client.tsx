@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { SaleFormDialog, type SaleRow } from "@/components/admin/sale-form-dialog";
+import { AdminPagination } from "@/components/admin/admin-pagination";
 import { formatDate } from "@/lib/utils";
 
 interface ProductOption {
@@ -288,31 +289,13 @@ export function SalesClient({
       </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages} &middot; {pagination.total} sales
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      <AdminPagination
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        total={pagination.total}
+        itemLabel="sales"
+        onPageChange={setPage}
+      />
 
       <SaleFormDialog
         open={formOpen}

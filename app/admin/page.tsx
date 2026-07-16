@@ -25,8 +25,22 @@ import { DashboardAnalyticsPanel } from "@/components/admin/dashboard-analytics-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { BookingStatus } from "@/models/Booking";
 
+function monthlyRevenueDelta(
+  current: number,
+  previous: number
+): { label: string; trend: "up" | "down" } | undefined {
+  if (previous <= 0) return undefined;
+  const change = ((current - previous) / previous) * 100;
+  const rounded = Math.round(Math.abs(change));
+  return {
+    label: `${rounded}% vs last month`,
+    trend: change >= 0 ? "up" : "down",
+  };
+}
+
 export default async function AdminDashboardPage() {
   const stats = await getDashboardStats();
+  const revenueDelta = monthlyRevenueDelta(stats.monthlyRevenueTotal, stats.previousMonthRevenueTotal);
 
   return (
     <Tabs defaultValue="overview" className="space-y-6">
@@ -42,34 +56,40 @@ export default async function AdminDashboardPage() {
             value={`₹${stats.totalRevenue.toLocaleString("en-IN")}`}
             icon={IndianRupee}
             hint="Confirmed, in-use & returned bookings"
+            tint="gold"
           />
           <StatCard
             label="Outstanding Balance"
             value={`₹${stats.outstandingBalance.toLocaleString("en-IN")}`}
             icon={Receipt}
             hint="Unpaid on sent invoices"
+            tint="rose"
           />
           <StatCard
             label="Returns Due"
             value={stats.returnsDue.toLocaleString("en-IN")}
             icon={RotateCcw}
             hint="Rentals past their return date"
+            tint="wine"
           />
           <StatCard
             label="Total Bookings"
             value={stats.totalBookings.toLocaleString("en-IN")}
             icon={CalendarCheck}
+            tint="teal"
           />
           <StatCard
             label="Active Rentals"
             value={stats.activeRentals.toLocaleString("en-IN")}
             icon={Shirt}
             hint="Currently out with customers"
+            tint="gold"
           />
           <StatCard
             label="Customers"
             value={stats.totalCustomers.toLocaleString("en-IN")}
             icon={Users}
+            tint="slate"
           />
         </div>
 
@@ -80,47 +100,58 @@ export default async function AdminDashboardPage() {
               label="Total Dresses"
               value={stats.totalProducts.toLocaleString("en-IN")}
               icon={Package}
+              tint="wine"
             />
             <StatCard
               label="Available Dresses"
               value={stats.availableDresses.toLocaleString("en-IN")}
               icon={CheckCircle2}
+              tint="teal"
             />
             <StatCard
               label="Reserved Dresses"
               value={stats.reservedDresses.toLocaleString("en-IN")}
               icon={BookmarkCheck}
+              tint="gold"
             />
             <StatCard
               label="Today's Bookings"
               value={stats.todaysBookings.toLocaleString("en-IN")}
               icon={CalendarPlus}
+              tint="teal"
             />
             <StatCard
               label="Today's Pickups"
               value={stats.todaysPickups.toLocaleString("en-IN")}
               icon={PackageCheck}
+              tint="gold"
             />
             <StatCard
               label="Today's Returns Due"
               value={stats.todaysReturns.toLocaleString("en-IN")}
               icon={Undo2}
+              tint="rose"
             />
             <StatCard
               label="Returned Today"
               value={stats.returnedToday.toLocaleString("en-IN")}
               icon={CheckCheck}
+              tint="teal"
             />
             <StatCard
               label="Pending Payments"
               value={stats.pendingPaymentsCount.toLocaleString("en-IN")}
               icon={Wallet}
               hint="Invoices sent, partially paid or overdue"
+              tint="rose"
             />
             <StatCard
               label="Revenue This Month"
               value={`₹${stats.monthlyRevenueTotal.toLocaleString("en-IN")}`}
               icon={TrendingUp}
+              tint="gold"
+              delta={revenueDelta}
+              hint={revenueDelta ? undefined : "No revenue last month to compare"}
             />
           </div>
         </div>

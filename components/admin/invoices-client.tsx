@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
+import { AdminPagination } from "@/components/admin/admin-pagination";
 import { downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { formatDate } from "@/lib/utils";
 import type { InvoiceStatus } from "@/models/Invoice";
@@ -563,31 +564,13 @@ export function InvoicesClient({
       </div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages} &middot; {pagination.total} invoices
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      <AdminPagination
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        total={pagination.total}
+        itemLabel="invoices"
+        onPageChange={setPage}
+      />
 
       <ConfirmDialog
         open={confirmState !== null}

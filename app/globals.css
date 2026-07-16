@@ -180,21 +180,21 @@
 .admin-theme.dark {
   --background: #1d1014;
   --foreground: #f3e9ee;
-  --card: #28181d;
+  --card: #3a2731;
   --card-foreground: #f3e9ee;
-  --popover: #28181d;
+  --popover: #453040;
   --popover-foreground: #f3e9ee;
   --primary: #e3b36e;
   --primary-foreground: #28081a;
-  --secondary: #33222a;
+  --secondary: #3d2a35;
   --secondary-foreground: #f3e9ee;
-  --muted: #2e1e24;
+  --muted: #32212a;
   --muted-foreground: #c9a6b4;
   --accent: #c9a45c;
   --accent-foreground: #1d1014;
   --destructive: #e06773;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.14);
+  --input: #5c404c;
   --ring: #c9a45c;
   --chart-1: #c9a45c;
   --chart-2: #e3b36e;
@@ -217,10 +217,10 @@
 }
 
 .admin-sidebar-gradient {
-  background: linear-gradient(180deg, #3d1229 0%, #28081a 100%);
+  background: linear-gradient(180deg, var(--sidebar) 0%, #28081a 100%);
 }
 .dark .admin-sidebar-gradient {
-  background: linear-gradient(180deg, #28081a 0%, #17070f 100%);
+  background: linear-gradient(180deg, #28081a 0%, var(--sidebar) 100%);
 }
 
 @layer base {

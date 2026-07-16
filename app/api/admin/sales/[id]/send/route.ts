@@ -4,6 +4,7 @@ import { Sale } from "@/models/Sale";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { notifySaleBillSent } from "@/lib/notifications/whatsapp-events";
+import { notifyAccounts } from "@/lib/notifications/in-app";
 import { siteConfig } from "@/lib/config/site";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
@@ -33,6 +34,14 @@ export async function POST(
         totalAmount: String(sale.totalAmount),
         billPdfUrl: `${siteConfig.url}/api/sales/${id}/pdf`,
       },
+    });
+    void notifyAccounts(ADMIN_ROLES, {
+      type: "sale_bill_sent",
+      title: "Sale bill sent",
+      message: `${sale.billNumber} sent to ${sale.customerName} — ₹${sale.totalAmount.toLocaleString("en-IN")}`,
+      link: `/admin/sales`,
+      relatedEntityType: "Sale",
+      relatedEntityId: id,
     });
 
     return apiSuccess({ sent: true });

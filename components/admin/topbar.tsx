@@ -25,23 +25,24 @@ import { Button } from "@/components/ui/button";
 import { AdminNavLinks } from "@/components/admin/nav-links";
 import { GlobalSearch } from "@/components/admin/global-search";
 import { VisitWebsiteLink } from "@/components/admin/visit-website-link";
-import { adminNavItems } from "@/lib/config/admin-nav";
+import { NotificationBell } from "@/components/admin/notification-bell";
+import { adminNavItemsWithGroup } from "@/lib/config/admin-nav";
 import { siteConfig } from "@/lib/config/site";
 import { useAdminTheme } from "@/components/admin/theme-provider";
 import type { SessionUser } from "@/types/auth";
 
-function useAdminPageTitle(): string {
+function useAdminPageHeader(): { title: string; eyebrow: string } {
   const pathname = usePathname();
-  const match = [...adminNavItems]
+  const match = [...adminNavItemsWithGroup]
     .sort((a, b) => b.href.length - a.href.length)
     .find((item) => (item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href)));
-  return match?.label ?? "Admin";
+  return { title: match?.label ?? "Admin", eyebrow: match?.groupLabel ?? "" };
 }
 
 export function AdminTopbar({ user }: { user: SessionUser }) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const title = useAdminPageTitle();
+  const { title, eyebrow } = useAdminPageHeader();
   const { theme, toggleTheme } = useAdminTheme();
   const [navOpen, setNavOpen] = useState(false);
 
@@ -78,9 +79,14 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
                   className="h-8 w-8 object-contain"
                 />
               </span>
-              <span className="font-heading text-lg font-semibold tracking-wide text-sidebar-foreground">
-                {siteConfig.shortName}
-              </span>
+              <div className="leading-tight">
+                <p className="font-heading text-lg font-semibold tracking-wide text-sidebar-foreground">
+                  {siteConfig.shortName}
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/60">
+                  Admin Panel
+                </p>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto">
               <AdminNavLinks role={user.role} onNavigate={() => setNavOpen(false)} />
@@ -90,11 +96,19 @@ export function AdminTopbar({ user }: { user: SessionUser }) {
             </div>
           </SheetContent>
         </Sheet>
-        <h1 className="font-heading text-lg">{title}</h1>
+        <div className="leading-tight">
+          {eyebrow && (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              {eyebrow}
+            </p>
+          )}
+          <h1 className="font-heading text-xl italic">{title}</h1>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
         <GlobalSearch />
+        <NotificationBell />
         <Button
           variant="ghost"
           size="icon"

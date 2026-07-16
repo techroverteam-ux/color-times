@@ -15,6 +15,7 @@ import {
   notifyBookingReturned,
   notifyBookingCancelled,
 } from "@/lib/notifications/whatsapp-events";
+import { notifyAccounts } from "@/lib/notifications/in-app";
 import { formatDate } from "@/lib/utils";
 
 interface RouteParams {
@@ -179,10 +180,34 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
 
     if (input.status === "confirmed") {
       void notifyBookingConfirmed(notifyContext);
+      void notifyAccounts(ADMIN_ROLES, {
+        type: "booking_confirmed",
+        title: "Booking confirmed",
+        message: `${notifyContext.customerName} — ${booking.bookingNumber} (${productNames})`,
+        link: `/admin/bookings/${id}`,
+        relatedEntityType: "Booking",
+        relatedEntityId: id,
+      });
     } else if (input.status === "returned") {
       void notifyBookingReturned(notifyContext);
+      void notifyAccounts(ADMIN_ROLES, {
+        type: "booking_returned",
+        title: "Booking returned",
+        message: `${notifyContext.customerName} — ${booking.bookingNumber} (${productNames})`,
+        link: `/admin/bookings/${id}`,
+        relatedEntityType: "Booking",
+        relatedEntityId: id,
+      });
     } else if (input.status === "cancelled") {
       void notifyBookingCancelled(notifyContext);
+      void notifyAccounts(ADMIN_ROLES, {
+        type: "booking_cancelled",
+        title: "Booking cancelled",
+        message: `${notifyContext.customerName} — ${booking.bookingNumber} (${productNames})`,
+        link: `/admin/bookings/${id}`,
+        relatedEntityType: "Booking",
+        relatedEntityId: id,
+      });
     }
 
     return apiSuccess({ booking });

@@ -5,6 +5,7 @@ import { categorySchema } from "@/lib/validations/category";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
+import { escapeRegex } from "@/lib/utils";
 
 export async function GET(): Promise<Response> {
   const auth = await requireApiRole(ADMIN_ROLES);
@@ -24,6 +25,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     const input = categorySchema.parse(body);
 
     await connectToDatabase();
+
+    const existingName = await Category.findOne({
+      name: { $regex: `^${escapeRegex(input.name)}$`, $options: "i" },
+    }).lean();
+    if (existingName) {
+      return apiError("A category with this name already exists", 409);
+    }
 
     const existing = await Category.findOne({ slug: input.slug }).lean();
     if (existing) {

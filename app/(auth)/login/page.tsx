@@ -24,7 +24,7 @@ export default async function LoginPage({
       className="admin-theme relative grid min-h-svh place-items-center overflow-hidden px-6 py-8"
       style={{
         background:
-          "radial-gradient(circle at 50% 0%, rgba(201,164,92,0.10), transparent 55%), linear-gradient(175deg, #3d1229 0%, #28081a 60%, #190510 100%)",
+          "radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%), linear-gradient(175deg, var(--sidebar) 0%, #28081a 60%, #190510 100%)",
       }}
     >
       <div className="flex w-full max-w-[378px] flex-col items-center">

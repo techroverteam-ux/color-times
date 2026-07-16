@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { requireRole } from "@/lib/auth/session";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { ADMIN_THEME_COOKIE_KEY } from "@/lib/admin/theme-cookie";
 
 export const metadata: Metadata = {
   title: {
@@ -19,5 +21,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login?next=/admin");
   }
 
-  return <AdminShell user={user}>{children}</AdminShell>;
+  const cookieStore = await cookies();
+  const initialTheme = cookieStore.get(ADMIN_THEME_COOKIE_KEY)?.value === "dark" ? "dark" : "light";
+
+  return (
+    <AdminShell user={user} initialTheme={initialTheme}>
+      {children}
+    </AdminShell>
+  );
 }

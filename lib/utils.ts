@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/** Escapes regex special characters so a string can be used as a literal match pattern. */
+export function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 /** Formats a date as "10-Jul-2026". */
 export function formatDate(value: string | number | Date): string {
   const date = new Date(value)

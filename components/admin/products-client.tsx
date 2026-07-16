@@ -8,7 +8,9 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  ChevronDown,
   Copy,
+  Download,
   Eye,
   FileDown,
   Grid3x3,
@@ -34,7 +36,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ColumnVisibilityMenu } from "@/components/admin/column-visibility-menu";
+import { AdminPagination } from "@/components/admin/admin-pagination";
 import { ProductsBulkToolbar } from "@/components/admin/products-bulk-toolbar";
 import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ProductQuickAddDialog } from "@/components/admin/product-quick-add-dialog";
@@ -570,18 +579,27 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
               onChange={(key, value) => setColumnVisibility((prev) => ({ ...prev, [key]: value }))}
             />
           )}
-          <Button variant="outline" size="sm" disabled={isExporting} onClick={handleExportExcel}>
-            <Table2 className="h-4 w-4" />
-            Excel
-          </Button>
-          <Button variant="outline" size="sm" disabled={isExporting} onClick={handleExportPdf}>
-            <FileDown className="h-4 w-4" />
-            PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" size="sm" disabled={isExporting} />}>
+              <Download className="h-4 w-4" />
+              Export
+              <ChevronDown className="h-3.5 w-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportExcel}>
+                <Table2 className="h-4 w-4" />
+                Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPdf}>
+                <FileDown className="h-4 w-4" />
+                PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handlePrint}>
+                <Printer className="h-4 w-4" />
+                Print
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -850,31 +868,13 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
         <div className="hidden lg:block">{cardGrid}</div>
       )}
 
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages} &middot; {pagination.total} products
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      )}
+      <AdminPagination
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        total={pagination.total}
+        itemLabel="products"
+        onPageChange={setPage}
+      />
 
       <ConfirmDialog
         open={confirmState !== null}

@@ -7,6 +7,7 @@ import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
 import { notifyPaymentReceived } from "@/lib/notifications/whatsapp-events";
+import { notifyAccounts } from "@/lib/notifications/in-app";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 export async function POST(
@@ -88,6 +89,14 @@ export async function POST(
           amountPaid: String(input.amount),
           amountDue: String(invoice.amountDue),
         },
+      });
+      void notifyAccounts(ADMIN_ROLES, {
+        type: "payment_received",
+        title: "Payment received",
+        message: `₹${input.amount.toLocaleString("en-IN")} from ${customer?.name ?? "customer"} — ${invoice.invoiceNumber}`,
+        link: `/admin/invoices/${id}`,
+        relatedEntityType: "Invoice",
+        relatedEntityId: id,
       });
     }
 

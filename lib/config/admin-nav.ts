@@ -36,8 +36,8 @@ const NAV_GROUPS_BY_ROLE: { label: string; items: AdminNavItem[] }[] = [
   {
     label: "Inventory",
     items: [
-      { label: "Products", href: "/admin/products", icon: Shirt },
       { label: "Categories", href: "/admin/categories", icon: FolderTree },
+      { label: "Products", href: "/admin/products", icon: Shirt },
     ],
   },
   {
@@ -69,7 +69,15 @@ const NAV_GROUPS_BY_ROLE: { label: string; items: AdminNavItem[] }[] = [
   },
 ];
 
+export interface AdminNavItemWithGroup extends AdminNavItem {
+  groupLabel: string;
+}
+
 export const adminNavItems: AdminNavItem[] = NAV_GROUPS_BY_ROLE.flatMap((group) => group.items);
+
+export const adminNavItemsWithGroup: AdminNavItemWithGroup[] = NAV_GROUPS_BY_ROLE.flatMap((group) =>
+  group.items.map((item) => ({ ...item, groupLabel: group.label }))
+);
 
 export function navItemsForRole(role: UserRole): AdminNavItem[] {
   return adminNavItems.filter((item) => !item.roles || item.roles.includes(role));

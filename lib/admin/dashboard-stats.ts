@@ -42,6 +42,7 @@ export interface DashboardStats {
   returnedToday: number;
   pendingPaymentsCount: number;
   monthlyRevenueTotal: number;
+  previousMonthRevenueTotal: number;
   recentBookings: {
     _id: string;
     bookingNumber: string;
@@ -71,6 +72,9 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
+  const startOfPreviousMonth = new Date(startOfMonth);
+  startOfPreviousMonth.setMonth(startOfPreviousMonth.getMonth() - 1);
+
   const [
     totalRevenueResult,
     totalBookings,
@@ -87,6 +91,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     returnedToday,
     pendingPaymentsCount,
     monthlyRevenueTotalResult,
+    previousMonthRevenueTotalResult,
     recentBookings,
     monthlyRevenue,
   ] = await Promise.all([
@@ -135,6 +140,15 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       { $match: { status: { $in: REVENUE_STATUSES }, createdAt: { $gte: startOfMonth } } },
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
+    Booking.aggregate([
+      {
+        $match: {
+          status: { $in: REVENUE_STATUSES },
+          createdAt: { $gte: startOfPreviousMonth, $lt: startOfMonth },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    ]),
     Booking.find()
       .populate("customer", "name")
       .populate("items.product", "name")
@@ -175,6 +189,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     returnedToday,
     pendingPaymentsCount,
     monthlyRevenueTotal: monthlyRevenueTotalResult[0]?.total ?? 0,
+    previousMonthRevenueTotal: previousMonthRevenueTotalResult[0]?.total ?? 0,
     recentBookings: recentBookings.map((booking) => ({
       _id: String(booking._id),
       bookingNumber: booking.bookingNumber,

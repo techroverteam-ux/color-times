@@ -6,6 +6,7 @@ import { categorySchema } from "@/lib/validations/category";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
+import { escapeRegex } from "@/lib/utils";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -21,6 +22,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
     const input = categorySchema.partial().parse(body);
 
     await connectToDatabase();
+
+    if (input.name) {
+      const existingName = await Category.findOne({
+        _id: { $ne: id },
+        name: { $regex: `^${escapeRegex(input.name)}$`, $options: "i" },
+      }).lean();
+      if (existingName) {
+        return apiError("A category with this name already exists", 409);
+      }
+    }
+
+    if (input.slug) {
+      const existingSlug = await Category.findOne({ _id: { $ne: id }, slug: input.slug }).lean();
+      if (existingSlug) {
+        return apiError("A category with this slug already exists", 409);
+      }
+    }
+
     const category = await Category.findByIdAndUpdate(id, input, { returnDocument: "after" });
 
     if (!category) {

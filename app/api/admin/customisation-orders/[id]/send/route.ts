@@ -4,6 +4,7 @@ import { CustomisationOrder } from "@/models/CustomisationOrder";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { notifyCustomisationBillSent } from "@/lib/notifications/whatsapp-events";
+import { notifyAccounts } from "@/lib/notifications/in-app";
 import { siteConfig } from "@/lib/config/site";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
@@ -35,6 +36,14 @@ export async function POST(
         dueAmount: String(order.dueAmount),
         billPdfUrl: `${siteConfig.url}/api/customisation-orders/${id}/pdf`,
       },
+    });
+    void notifyAccounts(ADMIN_ROLES, {
+      type: "customisation_bill_sent",
+      title: "Customisation bill sent",
+      message: `${order.billNumber} sent to ${order.customerName} — ₹${order.totalAmount.toLocaleString("en-IN")}`,
+      link: `/admin/customisation`,
+      relatedEntityType: "CustomisationOrder",
+      relatedEntityId: id,
     });
 
     return apiSuccess({ sent: true });

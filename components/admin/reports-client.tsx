@@ -13,7 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StatCard } from "@/components/admin/stat-card";
+import { StatCard, type StatTint } from "@/components/admin/stat-card";
+import { AdminPagination } from "@/components/admin/admin-pagination";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { InvoiceStatusBadge } from "@/components/admin/invoice-status-badge";
 import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
@@ -283,6 +284,8 @@ interface SummaryCardConfig {
   label: string;
   format?: (value: unknown) => string;
 }
+
+const SUMMARY_TINTS: StatTint[] = ["gold", "teal", "wine", "rose"];
 
 const SUMMARY_CONFIGS: Record<ReportType, SummaryCardConfig[]> = {
   products: [
@@ -670,7 +673,7 @@ export function ReportsClient() {
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {summaryConfig.map((card) => (
+        {summaryConfig.map((card, index) => (
           <StatCard
             key={card.key}
             label={card.label}
@@ -680,6 +683,7 @@ export function ReportsClient() {
                 : (data?.summary[card.key] ?? 0).toLocaleString("en-IN")
             }
             icon={FileSpreadsheet}
+            tint={SUMMARY_TINTS[index % SUMMARY_TINTS.length]}
           />
         ))}
       </div>
@@ -734,30 +738,14 @@ export function ReportsClient() {
       </div>
       )}
 
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages} &middot; {pagination.total} records
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= pagination.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+      {pagination && (
+        <AdminPagination
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          total={pagination.total}
+          itemLabel="records"
+          onPageChange={setPage}
+        />
       )}
     </div>
   );

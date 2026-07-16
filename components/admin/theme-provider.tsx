@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { ADMIN_THEME_COOKIE_KEY } from "@/lib/admin/theme-cookie";
 
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -11,37 +12,39 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const STORAGE_KEY = "ct-admin-theme";
-const THEME_CHANGE_EVENT = "ct-admin-theme-change";
+const ADMIN_THEME_STORAGE_KEY = ADMIN_THEME_COOKIE_KEY;
 
-function subscribe(callback: () => void): () => void {
-  window.addEventListener(THEME_CHANGE_EVENT, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(THEME_CHANGE_EVENT, callback);
-    window.removeEventListener("storage", callback);
-  };
+function persistTheme(theme: Theme): void {
+  window.localStorage.setItem(ADMIN_THEME_STORAGE_KEY, theme);
+  document.cookie = `${ADMIN_THEME_COOKIE_KEY}=${theme}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
-function getSnapshot(): Theme {
-  return window.localStorage.getItem(STORAGE_KEY) === "dark" ? "dark" : "light";
-}
-
-function getServerSnapshot(): Theme {
-  return "light";
-}
-
-function setStoredTheme(theme: Theme): void {
-  window.localStorage.setItem(STORAGE_KEY, theme);
-  window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
-}
-
-export function AdminThemeProvider({ children }: { children: React.ReactNode }) {
-  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+export function AdminThemeProvider({
+  initialTheme,
+  children,
+}: {
+  initialTheme: Theme;
+  children: React.ReactNode;
+}) {
+  const [theme, setTheme] = useState<Theme>(initialTheme);
 
   function toggleTheme() {
-    setStoredTheme(theme === "light" ? "dark" : "light");
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    persistTheme(next);
   }
+
+  // Pick up theme changes made in another tab (localStorage is the
+  // cross-tab source of truth; the cookie only exists for SSR on load).
+  useEffect(() => {
+    function handleStorage(event: StorageEvent) {
+      if (event.key === ADMIN_THEME_STORAGE_KEY && (event.newValue === "light" || event.newValue === "dark")) {
+        setTheme(event.newValue);
+      }
+    }
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   // Base UI portals (dropdowns, sheets, dialogs) render into document.body,
   // outside the wrapper div below, so "dark" and "admin-theme" must also

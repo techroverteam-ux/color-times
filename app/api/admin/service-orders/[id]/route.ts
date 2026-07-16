@@ -7,6 +7,7 @@ import { serviceOrderUpdateSchema, computeServiceOrderTotal } from "@/lib/valida
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog, diffObjects } from "@/lib/audit/log";
+import { notifyAccounts } from "@/lib/notifications/in-app";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 interface RouteParams {
@@ -91,7 +92,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams): Prom
     }
 
     if (input.status === "completed" || input.status === "cancelled") {
-      await Product.findByIdAndUpdate(order.product, { status: "available" });
+      const product = await Product.findByIdAndUpdate(order.product, { status: "available" });
+      if (input.status === "completed") {
+        void notifyAccounts(ADMIN_ROLES, {
+          type: "service_ready",
+          title: "Ready for pickup",
+          message: `${product?.name ?? "Dress"} — ${order.serviceType === "dry_clean" ? "dry cleaning" : "tailoring"} complete`,
+          link: `/admin/services`,
+          relatedEntityType: "ServiceOrder",
+          relatedEntityId: id,
+        });
+      }
     }
 
     const changes = diffObjects(

@@ -6,6 +6,7 @@ import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { recordAuditLog } from "@/lib/audit/log";
 import { notifyInvoiceSent } from "@/lib/notifications/whatsapp-events";
+import { notifyAccounts } from "@/lib/notifications/in-app";
 import { formatDate } from "@/lib/utils";
 import { siteConfig } from "@/lib/config/site";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
@@ -57,6 +58,14 @@ export async function POST(
           dueDate: formatDate(invoice.dueDate),
           invoicePdfUrl: `${siteConfig.url}/api/invoices/${id}/pdf`,
         },
+      });
+      void notifyAccounts(ADMIN_ROLES, {
+        type: "invoice_sent",
+        title: "Invoice sent",
+        message: `${invoice.invoiceNumber} sent to ${customer?.name ?? "customer"} — ₹${invoice.total.toLocaleString("en-IN")}`,
+        link: `/admin/invoices/${id}`,
+        relatedEntityType: "Invoice",
+        relatedEntityId: id,
       });
     }
 
