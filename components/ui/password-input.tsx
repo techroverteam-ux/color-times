@@ -9,7 +9,7 @@ function PasswordInput({ className, ...props }: React.ComponentProps<"input">) {
   const [visible, setVisible] = React.useState(false)
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0 flex-1">
       <Input
         type={visible ? "text" : "password"}
         className={cn("pr-9", className)}

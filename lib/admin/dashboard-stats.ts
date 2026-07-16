@@ -5,6 +5,8 @@ import { Product } from "@/models/Product";
 import { Category } from "@/models/Category";
 import { User } from "@/models/User";
 import { Invoice, type InvoiceStatus } from "@/models/Invoice";
+import { Settings } from "@/models/Settings";
+import { DEFAULT_INVENTORY_SETTINGS } from "@/lib/validations/inventory-settings";
 
 const REVENUE_STATUSES = ["confirmed", "in_use", "returned"];
 
@@ -43,12 +45,18 @@ export interface DashboardStats {
   pendingPaymentsCount: number;
   monthlyRevenueTotal: number;
   previousMonthRevenueTotal: number;
+  lowStockCount: number;
+  newCustomersThisMonth: number;
+  newCustomersPreviousMonth: number;
+  categoryBookingBreakdown: { category: string; bookings: number }[];
   recentBookings: {
     _id: string;
     bookingNumber: string;
     status: string;
     totalAmount: number;
     createdAt: string;
+    rentalStartDate: string;
+    rentalEndDate: string;
     customer: { name: string } | null;
     productSummary: string;
   }[];
@@ -92,6 +100,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     pendingPaymentsCount,
     monthlyRevenueTotalResult,
     previousMonthRevenueTotalResult,
+    inventorySettingsDoc,
+    productStockTotals,
+    newCustomersThisMonth,
+    newCustomersPreviousMonth,
+    categoryBookingBreakdownResult,
     recentBookings,
     monthlyRevenue,
   ] = await Promise.all([
@@ -149,6 +162,43 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       },
       { $group: { _id: null, total: { $sum: "$totalAmount" } } },
     ]),
+    Settings.findOne({ module: "inventory" }).lean(),
+    Product.aggregate([
+      { $match: { isActive: true, deletedAt: null } },
+      { $unwind: "$variants" },
+      { $group: { _id: "$_id", totalStock: { $sum: "$variants.quantityInStock" } } },
+    ]),
+    User.countDocuments({ role: "customer", createdAt: { $gte: startOfMonth } }),
+    User.countDocuments({
+      role: "customer",
+      createdAt: { $gte: startOfPreviousMonth, $lt: startOfMonth },
+    }),
+    Booking.aggregate([
+      {
+        $match: { status: { $in: REVENUE_STATUSES }, createdAt: { $gte: startOfMonth } },
+      },
+      { $unwind: "$items" },
+      {
+        $lookup: {
+          from: Product.collection.name,
+          localField: "items.product",
+          foreignField: "_id",
+          as: "productDoc",
+        },
+      },
+      { $unwind: "$productDoc" },
+      {
+        $lookup: {
+          from: Category.collection.name,
+          localField: "productDoc.category",
+          foreignField: "_id",
+          as: "categoryDoc",
+        },
+      },
+      { $unwind: "$categoryDoc" },
+      { $group: { _id: "$categoryDoc.name", bookings: { $sum: 1 } } },
+      { $sort: { bookings: -1 } },
+    ]),
     Booking.find()
       .populate("customer", "name")
       .populate("items.product", "name")
@@ -190,12 +240,26 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     pendingPaymentsCount,
     monthlyRevenueTotal: monthlyRevenueTotalResult[0]?.total ?? 0,
     previousMonthRevenueTotal: previousMonthRevenueTotalResult[0]?.total ?? 0,
+    lowStockCount: (() => {
+      const threshold =
+        (inventorySettingsDoc?.data as { lowStockThreshold: number } | undefined)
+          ?.lowStockThreshold ?? DEFAULT_INVENTORY_SETTINGS.lowStockThreshold;
+      return productStockTotals.filter((p) => p.totalStock <= threshold).length;
+    })(),
+    newCustomersThisMonth,
+    newCustomersPreviousMonth,
+    categoryBookingBreakdown: categoryBookingBreakdownResult.map((entry) => ({
+      category: entry._id,
+      bookings: entry.bookings,
+    })),
     recentBookings: recentBookings.map((booking) => ({
       _id: String(booking._id),
       bookingNumber: booking.bookingNumber,
       status: booking.status,
       totalAmount: booking.totalAmount,
       createdAt: booking.createdAt.toISOString(),
+      rentalStartDate: booking.rentalStartDate.toISOString(),
+      rentalEndDate: booking.rentalEndDate.toISOString(),
       customer: booking.customer
         ? { name: (booking.customer as unknown as { name: string }).name }
         : null,
