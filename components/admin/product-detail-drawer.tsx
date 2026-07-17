@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Star } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -16,7 +19,8 @@ import { AuditLogList } from "@/components/admin/audit-log-list";
 import { BookingStatusBadge } from "@/components/admin/booking-status-badge";
 import { ServiceOrderStatusBadge } from "@/components/admin/service-order-status-badge";
 import { ProductAvailabilityCalendar } from "@/components/admin/product-availability-calendar";
-import { formatDate } from "@/lib/utils";
+import { ImagePreviewDialog } from "@/components/admin/image-preview-dialog";
+import { cn, formatDate } from "@/lib/utils";
 import type { BookingStatus } from "@/models/Booking";
 import type { ServiceOrderStatus } from "@/models/ServiceOrder";
 
@@ -84,6 +88,9 @@ export function ProductDetailDrawer({
   productId: string | null;
   onClose: () => void;
 }) {
+  const queryClient = useQueryClient();
+  const [previewIndex, setPreviewIndex] = useState(-1);
+
   const { data: product, isLoading } = useQuery({
     queryKey: ["admin", "product-detail", productId],
     queryFn: () => fetchProduct(productId as string),
@@ -95,6 +102,32 @@ export function ProductDetailDrawer({
     queryFn: () => fetchProductHistory(productId as string),
     enabled: Boolean(productId),
   });
+
+  const setCoverMutation = useMutation({
+    mutationFn: async (images: string[]) => {
+      const res = await fetch(`/api/admin/products/${productId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      return json.data;
+    },
+    onSuccess: () => {
+      toast.success("Cover image updated");
+      queryClient.invalidateQueries({ queryKey: ["admin", "product-detail", productId] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      setPreviewIndex(0);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  function setCoverImage(index: number) {
+    if (!product || index <= 0 || index >= product.images.length) return;
+    const { images } = product;
+    setCoverMutation.mutate([images[index], ...images.slice(0, index), ...images.slice(index + 1)]);
+  }
 
   return (
     <Sheet open={productId !== null} onOpenChange={(open) => !open && onClose()}>
@@ -118,16 +151,37 @@ export function ProductDetailDrawer({
             <div className="space-y-6 p-6">
               {product.images.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
-                  {product.images.map((image) => (
-                    <div
-                      key={image}
-                      className="relative h-24 w-20 shrink-0 overflow-hidden rounded-md bg-secondary"
+                  {product.images.map((image, index) => (
+                    <button
+                      type="button"
+                      key={image + index}
+                      onClick={() => setPreviewIndex(index)}
+                      aria-label={index === 0 ? "Preview cover image" : `Preview image ${index + 1}`}
+                      className={cn(
+                        "relative h-24 w-20 shrink-0 cursor-zoom-in overflow-hidden rounded-md border bg-secondary",
+                        index === 0 ? "border-accent ring-1 ring-accent" : "border-transparent"
+                      )}
                     >
                       <Image src={image} alt={product.name} fill sizes="80px" className="object-cover" />
-                    </div>
+                      {index === 0 && (
+                        <span className="pointer-events-none absolute bottom-1 left-1 grid h-4 w-4 place-items-center rounded-full bg-accent text-accent-foreground">
+                          <Star className="h-2.5 w-2.5 fill-current" />
+                        </span>
+                      )}
+                    </button>
                   ))}
                 </div>
               )}
+
+              <ImagePreviewDialog
+                images={product.images}
+                index={previewIndex}
+                onIndexChange={setPreviewIndex}
+                onOpenChange={(open) => !open && setPreviewIndex(-1)}
+                title={product.name}
+                onSetCover={setCoverImage}
+                isSettingCover={setCoverMutation.isPending}
+              />
 
               <Tabs defaultValue="details">
                 <TabsList className="w-full">

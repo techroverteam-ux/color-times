@@ -3,9 +3,11 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, Star, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ImagePreviewDialog } from "@/components/admin/image-preview-dialog";
+import { cn } from "@/lib/utils";
 
 interface ImageUploadFieldProps {
   images: string[];
@@ -16,7 +18,15 @@ interface ImageUploadFieldProps {
 export function ImageUploadField({ images, onChange, multiple = false }: ImageUploadFieldProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [manualUrl, setManualUrl] = useState("");
+  const [previewIndex, setPreviewIndex] = useState(-1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function setCoverImage(index: number) {
+    if (index <= 0 || index >= images.length) return;
+    const reordered = [images[index], ...images.slice(0, index), ...images.slice(index + 1)];
+    onChange(reordered);
+    setPreviewIndex(0);
+  }
 
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -63,9 +73,24 @@ export function ImageUploadField({ images, onChange, multiple = false }: ImageUp
           {images.map((src, index) => (
             <div
               key={src + index}
-              className="relative h-20 w-20 overflow-hidden rounded-md border border-border"
+              className={cn(
+                "group relative h-20 w-20 overflow-hidden rounded-md border",
+                index === 0 ? "border-accent ring-1 ring-accent" : "border-border"
+              )}
             >
-              <Image src={src} alt="" fill sizes="80px" className="object-cover" />
+              <button
+                type="button"
+                onClick={() => setPreviewIndex(index)}
+                className="absolute inset-0 h-full w-full cursor-zoom-in"
+                aria-label={index === 0 ? "Preview cover image" : `Preview image ${index + 1}`}
+              >
+                <Image src={src} alt="" fill sizes="80px" className="object-cover" />
+              </button>
+              {index === 0 && (
+                <span className="pointer-events-none absolute bottom-1 left-1 grid h-4 w-4 place-items-center rounded-full bg-accent text-accent-foreground">
+                  <Star className="h-2.5 w-2.5 fill-current" />
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => removeImage(index)}
@@ -77,6 +102,14 @@ export function ImageUploadField({ images, onChange, multiple = false }: ImageUp
           ))}
         </div>
       )}
+
+      <ImagePreviewDialog
+        images={images}
+        index={previewIndex}
+        onIndexChange={setPreviewIndex}
+        onOpenChange={(open) => !open && setPreviewIndex(-1)}
+        onSetCover={multiple ? setCoverImage : undefined}
+      />
 
       <div className="flex flex-wrap items-center gap-2">
         <input

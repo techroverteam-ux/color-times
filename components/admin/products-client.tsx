@@ -49,6 +49,7 @@ import { ConfirmDialog } from "@/components/admin/confirm-dialog";
 import { ProductQuickAddDialog } from "@/components/admin/product-quick-add-dialog";
 import { ProductImportDialog } from "@/components/admin/product-import-dialog";
 import { ProductDetailDrawer } from "@/components/admin/product-detail-drawer";
+import { ImagePreviewDialog } from "@/components/admin/image-preview-dialog";
 import { downloadPdf, downloadExcel } from "@/lib/admin/export";
 import { cn } from "@/lib/utils";
 
@@ -167,6 +168,8 @@ export function ProductsClient({
   const [priceDraft, setPriceDraft] = useState("");
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [previewProductId, setPreviewProductId] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState(-1);
   const [confirmState, setConfirmState] = useState<{
     ids: string[];
     action: "delete" | "permanent-delete" | "archive" | "restore";
@@ -288,6 +291,41 @@ export function ProductsClient({
     onSuccess: () => invalidate(),
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const setCoverMutation = useMutation({
+    mutationFn: async ({ id, images }: { id: string; images: string[] }) => {
+      const res = await fetch(`/api/admin/products/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      return json.data;
+    },
+    onSuccess: () => {
+      toast.success("Cover image updated");
+      invalidate();
+      setPreviewIndex(0);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const previewProduct = products.find((product) => product._id === previewProductId) ?? null;
+
+  function openPreview(product: ProductRow, index: number) {
+    setPreviewProductId(product._id);
+    setPreviewIndex(index);
+  }
+
+  function setCoverImage(index: number) {
+    if (!previewProduct || index <= 0 || index >= previewProduct.images.length) return;
+    const { images } = previewProduct;
+    setCoverMutation.mutate({
+      id: previewProduct._id,
+      images: [images[index], ...images.slice(0, index), ...images.slice(index + 1)],
+    });
+  }
 
   const inlinePriceMutation = useMutation({
     mutationFn: async ({ id, rentalPricePerDay }: { id: string; rentalPricePerDay: number }) => {
@@ -421,13 +459,20 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
         <div key={product._id} className="overflow-hidden rounded-lg border border-border bg-card">
           <div className="relative aspect-square bg-secondary">
             {product.images[0] && (
-              <Image
-                src={product.images[0]}
-                alt={product.name}
-                fill
-                sizes="(min-width: 1024px) 25vw, 50vw"
-                className="object-cover"
-              />
+              <button
+                type="button"
+                onClick={() => openPreview(product, 0)}
+                className="absolute inset-0 h-full w-full cursor-zoom-in"
+                aria-label={`Preview ${product.name} images`}
+              >
+                <Image
+                  src={product.images[0]}
+                  alt={product.name}
+                  fill
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                  className="object-cover"
+                />
+              </button>
             )}
             <button
               type="button"
@@ -664,13 +709,20 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
                     <div className="flex items-center gap-3">
                       <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-secondary">
                         {product.images[0] && (
-                          <Image
-                            src={product.images[0]}
-                            alt={product.name}
-                            fill
-                            sizes="40px"
-                            className="object-cover"
-                          />
+                          <button
+                            type="button"
+                            onClick={() => openPreview(product, 0)}
+                            className="absolute inset-0 h-full w-full cursor-zoom-in"
+                            aria-label={`Preview ${product.name} images`}
+                          >
+                            <Image
+                              src={product.images[0]}
+                              alt={product.name}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          </button>
                         )}
                       </div>
                       <div className="min-w-0">
@@ -908,6 +960,23 @@ const exportHeaders = ["Name", "SKU", "Category", "Price/Day", "Stock", "Status"
       />
 
       <ProductDetailDrawer productId={viewingId} onClose={() => setViewingId(null)} />
+
+      {previewProduct && (
+        <ImagePreviewDialog
+          images={previewProduct.images}
+          index={previewIndex}
+          onIndexChange={setPreviewIndex}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPreviewIndex(-1);
+              setPreviewProductId(null);
+            }
+          }}
+          title={previewProduct.name}
+          onSetCover={setCoverImage}
+          isSettingCover={setCoverMutation.isPending}
+        />
+      )}
     </div>
   );
 }
