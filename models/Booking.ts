@@ -79,8 +79,8 @@ const bookingSchema = new Schema<IBooking>(
         message: "A booking requires at least one item.",
       },
     },
-    rentalStartDate: { type: Date, required: true },
-    rentalEndDate: { type: Date, required: true },
+    rentalStartDate: { type: Date, required: true, index: true },
+    rentalEndDate: { type: Date, required: true, index: true },
     eventDate: { type: Date, required: true },
     status: {
       type: String,
@@ -96,7 +96,7 @@ const bookingSchema = new Schema<IBooking>(
     notes: { type: String },
     returnCondition: { type: String, enum: RETURN_CONDITIONS },
     returnNotes: { type: String },
-    returnedAt: { type: Date, default: null },
+    returnedAt: { type: Date, default: null, index: true },
     dryCleaningRequired: { type: Boolean, default: false },
     stitchingRequired: { type: Boolean, default: false },
     damageCharges: { type: Number, min: 0, default: 0 },
@@ -108,6 +108,9 @@ const bookingSchema = new Schema<IBooking>(
   },
   { timestamps: true }
 );
+
+bookingSchema.index({ createdAt: -1 });
+bookingSchema.index({ status: 1, rentalEndDate: 1 });
 
 export const Booking: Model<IBooking> =
   models.Booking ?? model<IBooking>("Booking", bookingSchema);

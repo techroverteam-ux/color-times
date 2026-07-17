@@ -1,9 +1,10 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { ACCESS_TOKEN_COOKIE } from "./cookies";
 import { verifyAccessToken, type AccessTokenPayload } from "./tokens";
 
-export async function getCurrentUser(): Promise<AccessTokenPayload | null> {
+export const getCurrentUser = cache(async (): Promise<AccessTokenPayload | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
 
@@ -16,7 +17,7 @@ export async function getCurrentUser(): Promise<AccessTokenPayload | null> {
   } catch {
     return null;
   }
-}
+});
 
 export async function requireRole(
   allowedRoles: AccessTokenPayload["role"][]

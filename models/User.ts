@@ -71,4 +71,6 @@ const userSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
+userSchema.index({ role: 1, createdAt: -1 });
+
 export const User: Model<IUser> = models.User ?? model<IUser>("User", userSchema);

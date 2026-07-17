@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { connectToDatabase } from "@/lib/db/connect";
 import { Booking, type BookingStatus } from "@/models/Booking";
 import { Product } from "@/models/Product";
@@ -63,7 +64,7 @@ export interface DashboardStats {
   monthlyRevenue: { label: string; revenue: number; bookings: number }[];
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+async function computeDashboardStats(): Promise<DashboardStats> {
   await connectToDatabase();
 
   const sixMonthsAgo = new Date();
@@ -280,6 +281,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   };
 }
 
+export const getDashboardStats = unstable_cache(computeDashboardStats, ["dashboard-stats"], {
+  revalidate: 30,
+});
+
 export interface DashboardAnalytics {
   bookingStatusBreakdown: { status: BookingStatus; count: number }[];
   invoiceStatusBreakdown: { status: InvoiceStatus; count: number; total: number }[];
@@ -293,7 +298,7 @@ export interface DashboardDateRange {
   to: Date | null;
 }
 
-export async function getDashboardAnalytics(
+async function computeDashboardAnalytics(
   range?: DashboardDateRange
 ): Promise<DashboardAnalytics> {
   await connectToDatabase();
@@ -453,4 +458,20 @@ export async function getDashboardAnalytics(
       newCustomers: newCustomersByKey.get(`${entry._id.year}-${entry._id.month}`) ?? 0,
     })),
   };
+}
+
+const getCachedDashboardAnalytics = unstable_cache(
+  async (fromMs: number | null, toMs: number | null) =>
+    computeDashboardAnalytics({
+      from: fromMs !== null ? new Date(fromMs) : null,
+      to: toMs !== null ? new Date(toMs) : null,
+    }),
+  ["dashboard-analytics"],
+  { revalidate: 60 }
+);
+
+export async function getDashboardAnalytics(
+  range?: DashboardDateRange
+): Promise<DashboardAnalytics> {
+  return getCachedDashboardAnalytics(range?.from?.getTime() ?? null, range?.to?.getTime() ?? null);
 }

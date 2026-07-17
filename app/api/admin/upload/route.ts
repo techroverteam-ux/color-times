@@ -1,11 +1,42 @@
 import { NextRequest } from "next/server";
 import { put } from "@vercel/blob";
+import sharp from "sharp";
 import { requireApiRole } from "@/lib/api/require-role";
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { apiSuccess, apiError, apiErrorFromUnknown } from "@/lib/api/response";
 
 const MAX_FILE_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+const MAX_DIMENSION = 2000;
+
+async function optimizeImage(buffer: Buffer, contentType: string): Promise<Buffer> {
+  const metadata = await sharp(buffer).metadata();
+  const needsResize =
+    (metadata.width ?? 0) > MAX_DIMENSION || (metadata.height ?? 0) > MAX_DIMENSION;
+
+  // PNG is lossless — re-encoding one that's already within bounds can bloat it
+  // (no palette quantization here), so only touch it when a resize is actually needed.
+  if (contentType === "image/png" && !needsResize) {
+    return buffer;
+  }
+
+  const image = sharp(buffer)
+    .rotate()
+    .resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: "inside", withoutEnlargement: true });
+
+  switch (contentType) {
+    case "image/jpeg":
+      return image.jpeg({ quality: 82 }).toBuffer();
+    case "image/png":
+      return image.png({ compressionLevel: 9 }).toBuffer();
+    case "image/webp":
+      return image.webp({ quality: 82 }).toBuffer();
+    case "image/avif":
+      return image.avif({ quality: 60 }).toBuffer();
+    default:
+      return image.toBuffer();
+  }
+}
 
 export async function POST(request: NextRequest): Promise<Response> {
   const auth = await requireApiRole(ADMIN_ROLES);
@@ -34,9 +65,13 @@ export async function POST(request: NextRequest): Promise<Response> {
       return apiError("Image must be smaller than 8MB", 413);
     }
 
-    const blob = await put(`products/${Date.now()}-${file.name}`, file, {
+    const inputBuffer = Buffer.from(await file.arrayBuffer());
+    const optimizedBuffer = await optimizeImage(inputBuffer, file.type);
+
+    const blob = await put(`products/${Date.now()}-${file.name}`, optimizedBuffer, {
       access: "public",
       addRandomSuffix: true,
+      contentType: file.type,
     });
 
     return apiSuccess({ url: blob.url }, 201);

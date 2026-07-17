@@ -20,7 +20,11 @@ export default async function AdminSalesPage() {
       .limit(PAGE_SIZE)
       .lean(),
     Sale.countDocuments(activeFilter),
-    Product.find({ deletedAt: null }).sort({ name: 1 }).select("name sku").lean(),
+    Product.find({ deletedAt: null })
+      .sort({ name: 1 })
+      .select("name sku")
+      .limit(500)
+      .lean(),
   ]);
 
   const initialSales = sales.map((sale) => ({

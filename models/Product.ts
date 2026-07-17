@@ -114,6 +114,7 @@ const productSchema = new Schema<IProduct>(
 );
 
 productSchema.index({ name: "text", description: "text", tags: "text" });
+productSchema.index({ deletedAt: 1, archivedAt: 1, createdAt: -1 });
 
 export const Product: Model<IProduct> =
   models.Product ?? model<IProduct>("Product", productSchema);
